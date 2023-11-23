@@ -10,13 +10,13 @@ fi
 
 # Configuration
 app_dir="/home/server/backend"
-repo_url="git@git.dv.net:dv/backend.git"
+repo_url="git@github.com:RadgRabbi/dv-backend.git"
 release_dir="/home/server/backend/release"
 date=`date '+%Y-%m-%d-%H-%M'`
 build_dir=$release_dir/$date
 
 frontend_app_dir="/home/server/frontend"
-frontend_repo_url="git@git.dv.net:dv/frontend-new.git"
+frontend_repo_url="git@github.com:RadgRabbi/dv-frontend.git"
 frontend_release_dir="/home/server/frontend/release"
 frontend_build_dir=$frontend_release_dir/$date
 
@@ -28,7 +28,7 @@ fi
 echo "Update backend app"
 mkdir -p $build_dir
 
-git clone -b master $repo_url $build_dir
+git clone $repo_url $build_dir
 
 cp $app_dir/www/.env $build_dir/.env
 chown -R server:server $app_dir
@@ -39,7 +39,7 @@ echo "Update frontend app"
 mkdir -p $frontend_build_dir
 
 
-git clone -b master $frontend_repo_url $frontend_build_dir
+git clone $frontend_repo_url $frontend_build_dir
 cp $frontend_app_dir/www/.env $frontend_build_dir/.env
 chown -R server:server $frontend_app_dir
 
