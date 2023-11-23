@@ -1,0 +1,17 @@
+actor: ApiTester
+modules:
+  enabled:
+    - \Tests\Support\Helper\DataHelper
+    - Laravel:
+        environment_file: .env.testing
+    - Queue:
+        connection: 'redis'
+        type: 'beanstalk'
+        host: '127.0.0.1'
+        port: 6379
+        timeout: 120
+        depends: Laravel
+    - REST:
+        url: /
+        depends: Laravel
+    - Asserts

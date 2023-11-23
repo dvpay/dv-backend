@@ -1,0 +1,22 @@
+version: "3.7"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/app_test/Dockerfile
+    restart: always
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0-oracle
+    restart: always
+    volumes:
+      - db-test-data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: dv
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    entrypoint: ["docker-entrypoint.sh", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+
+volumes:
+  db-test-data:

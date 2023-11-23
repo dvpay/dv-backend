@@ -1,0 +1,7 @@
+.idea
+.env
+vendor
+storage
+node_modules
+.env.testing
+frontend/*

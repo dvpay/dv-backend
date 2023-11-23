@@ -1,0 +1,85 @@
+variables:
+    CI_ROOT_PATH: /home/server/backend
+    CI_BUILD_PATH: $CI_ROOT_PATH/builds
+    CI_PROD_ROOT_PATH: /home/server/backend_new
+    CI_PROD_BUILD_PATH: $CI_PROD_ROOT_PATH/builds
+
+    TEST_DOCKER_COMPOSE: /usr/bin/docker-compose -f docker-compose.testing.yml
+
+stages:
+    - test
+    - stage
+    - prod
+
+run tests:
+    cache:
+        - key:
+              files:
+                  - composer.lock
+          paths:
+              - vendor/
+    tags:
+        - backend_new
+        - stage
+    stage: test
+    script:
+        - if [ ! -f $CI_ROOT_PATH/.env.testing ]; then echo exit 1; fi
+        - cp $CI_PROJECT_DIR/.env.testing.example $CI_PROJECT_DIR/.env
+        - cp $CI_PROJECT_DIR/.env.testing.example $CI_PROJECT_DIR/.env.testing
+        - composer install --ignore-platform-reqs
+        - $TEST_DOCKER_COMPOSE up -d --build
+        - $TEST_DOCKER_COMPOSE run -T --rm app php artisan --env=testing key:generate
+        - $TEST_DOCKER_COMPOSE run -T --rm app dockerize -wait tcp://db:3306 -- bash -c "php artisan --env=testing migrate:fresh --seed --force"
+        - $TEST_DOCKER_COMPOSE run -T --rm app php vendor/bin/codecept run Api
+    after_script:
+        - $TEST_DOCKER_COMPOSE down --rmi local
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+deploy production:
+    tags:
+        - backend
+        - prod
+    stage: prod
+    before_script:
+        - export DATE=`date '+%Y-%m-%d-%H-%M'`
+        - export BUILD_DIR=$CI_PROD_BUILD_PATH/$DATE-$CI_COMMIT_SHA
+    script:
+        - if [ ! -f $CI_PROD_ROOT_PATH/.env ]; then echo exit 1; fi
+        - ln -s $CI_PROD_ROOT_PATH/.env $CI_PROJECT_DIR/.env
+        - composer install --no-dev
+        - php artisan migrate --force
+        - php artisan optimize:clear
+        - php artisan l5-swagger:generate
+        - cp -r $CI_PROJECT_DIR $BUILD_DIR
+        - rm -rf $BUILD_DIR/.git
+        - rm -f $CI_PROD_ROOT_PATH/www
+        - ln -s $BUILD_DIR $CI_PROD_ROOT_PATH/www
+        - sudo service php82-php-fpm restart
+        - sudo service queue restart
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "master"'
+          when: manual
+
+deploy stage:
+    tags:
+        - backend_new
+        - stage
+    stage: stage
+    before_script:
+        - export DATE=`date '+%Y-%m-%d-%H-%M'`
+        - export BUILD_DIR=$CI_BUILD_PATH/$DATE-$CI_COMMIT_SHA
+    script:
+        - if [ ! -f $CI_ROOT_PATH/.env ]; then echo exit 1; fi
+        - ln -s $CI_ROOT_PATH/.env $CI_PROJECT_DIR/.env
+        - composer install
+        - php artisan migrate --force
+        - php artisan optimize:clear
+        - php artisan l5-swagger:generate
+        - cp -r $CI_PROJECT_DIR $BUILD_DIR
+        - rm -rf $BUILD_DIR/.git
+        - rm -f $CI_ROOT_PATH/www
+        - ln -s $BUILD_DIR $CI_ROOT_PATH/www
+        - php artisan queue:restart
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "dev"'
