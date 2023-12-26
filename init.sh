@@ -393,8 +393,6 @@ rm -rf /var/lib/mysql/*
 yum -y install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup -y ps80
 yum -y install percona-server-server percona-server-client percona-server-devel percona-toolkit percona-xtrabackup-80
-echo "skip-log-bin" >> /etc/my.cnf
-echo "log_bin_trust_function_creators = 1" >> /etc/my.cnf
 
 systemctl start mysqld.service
 MYSQLINSTALLPASSWORD=`grep 'temporary password' /var/log/mysqld.log | awk '{print $13}'`
@@ -404,7 +402,7 @@ echo "MySQL root password: ${MYSQLPASSWORD}"
 echo ${MYSQLPASSWORD} > /root/mysql.pass
 
 mysql --user=root --password="${MYSQLINSTALLPASSWORD}" --connect-expired-password mysql -Bse "
-ALTER USER 'root'@'localhost' IDENTIFIED WITH BY \"${MYSQLPASSWORD}\";
+ALTER USER 'root'@'localhost' IDENTIFIED BY \"${MYSQLPASSWORD}\";
 FLUSH PRIVILEGES;"
 mysql --user=root --password="${MYSQLPASSWORD}" mysql -Bse "
 UPDATE user SET host='%' WHERE user='root';
