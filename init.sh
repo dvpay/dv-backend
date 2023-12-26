@@ -61,12 +61,23 @@ if [[ -z "$3" ]]; then
     read -p "Enter pay form domain (Press Enter to use the default: pay.$FRONT):" PAYDOMAIN
 
     if [[ -z "$PAYDOMAIN" ]]; then
-        export PAYDOMAIN="pay.$PAYDOMAIN"
+        export PAYDOMAIN="pay.$FRONT"
     else
         export PAYDOMAIN
     fi
 else
     export PAYDOMAIN="${3}"
+fi
+if [[ -z "$4" ]]; then
+    read -p "Enter processing domain (Press Enter to use the default: processing.dv.net):" PROCESSING_URL
+
+    if [[ -z "$PROCESSING_URL" ]]; then
+        export PROCESSING_URL="processing.dv.net"
+    else
+        export PROCESSING_URL
+    fi
+else
+    export PAYDOMAIN="${4}"
 fi
 if [ "${FRONT}" == "" ]; then
     echo "Empty domain for Mechant control panel!"
@@ -76,12 +87,6 @@ fi
 if [ "${FRONT}" == "" ];
 then
     echo "Empty frontend domain!"
-    exit;
-fi
-
-if [ "${FRONT}" == "" ];
-then
-    echo "Empty payment form domain!"
     exit;
 fi
 
