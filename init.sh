@@ -461,7 +461,7 @@ eval `ssh-agent`
 
 ssh-add ~/.ssh/id_rsa
 
-git clone -b main https://github.com/RadgRabbi/dv-backend /home/server/backend/release/target
+git clone -b master https://github.com/RadgRabbi/dv-backend /home/server/backend/release/target
 
 cp /home/server/backend/release/target/.env.example /home/server/backend/release/target/.env
 
@@ -490,7 +490,7 @@ rm -rf /home/server/frontend/
 
 mkdir -p /home/server/frontend/release/target
 
-git clone -b main https://github.com/dvpay/dv-frontend /home/server/frontend/release/target
+git clone -b master https://github.com/dvpay/dv-frontend /home/server/frontend/release/target
 
 cp /home/server/frontend/release/target/.env.example /home/server/frontend/release/target/.env
 
@@ -524,6 +524,34 @@ EOF
 systemctl enable supervisord
 
 systemctl restart supervisord
+
+echo "Create systemd demon transfer"
+
+cat > /etc/systemd/system/transfers.service <<EOF
+[Unit]
+Description=Transfer to Processing
+After=network.target
+
+[Service]
+Type=simple
+User=server
+
+WorkingDirectory=/home/server
+ExecStart=php /home/server/backend/www/artisan withdrawal:loop
+
+Restart=on-failure
+RestartSec=3
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=transfers
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl start transfers
+systemctl enable transfers
 
 echo "Enable cron"
 
