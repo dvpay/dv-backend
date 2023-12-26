@@ -99,6 +99,7 @@ fi
 echo "Frontend domain: ${FRONT}"
 echo "Backend domain: ${BACK}"
 echo "Pay domain: ${PAYDOMAIN}"
+echo "Processing url: ${PROCESSING_URL}"
 
 adduser server
 
@@ -466,7 +467,7 @@ git clone -b main https://github.com/RadgRabbi/dv-backend /home/server/backend/r
 
 cp /home/server/backend/release/target/.env.example /home/server/backend/release/target/.env
 
-sed -i "s/^APP_URL=.*/APP_URL=http:\/\/${BACK}/g" /home/server/backend/release/target/.env
+sed -i "s/^APP_URL=.*/APP_URL=https:\/\/${BACK}/g" /home/server/backend/release/target/.env
 sed -i "s/^APP_DOMAIN=.*/APP_DOMAIN=${FRONT}/g" /home/server/backend/release/target/.env
 sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=mysql/g" /home/server/backend/release/target/.env
 sed -i "s/^DB_HOST=.*/DB_HOST=127.0.0.1/g" /home/server/backend/release/target/.env
@@ -474,8 +475,8 @@ sed -i "s/^DB_PORT=.*/DB_PORT=3306/g" /home/server/backend/release/target/.env
 sed -i "s/^DB_DATABASE=.*/DB_DATABASE=merchant_dv/g" /home/server/backend/release/target/.env
 sed -i "s/^DB_USERNAME=.*/DB_USERNAME=${NEW_USERNAME}/g" /home/server/backend/release/target/.env
 sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${NEW_PASSWORD}/g" /home/server/backend/release/target/.env
-sed -i "s/^PAYMENT_FORM_URL=.*/PAYMENT_FORM_URL=http:\/\/${PAYDOMAIN}\/invoices/g" /home/server/backend/release/target/.env
-sed -i "s/^PROCESSING_URL=.*/PROCESSING_URL=http:\/\/$PROCESSING_URL/g" /home/server/backend/release/target/.env
+sed -i "s/^PAYMENT_FORM_URL=.*/PAYMENT_FORM_URL=https:\/\/${PAYDOMAIN}\/invoices/g" /home/server/backend/release/target/.env
+sed -i "s/^PROCESSING_URL=.*/PROCESSING_URL=https:\/\/$PROCESSING_URL/g" /home/server/backend/release/target/.env
 
 chown -R server:server /home/server/backend/
 
