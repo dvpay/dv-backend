@@ -461,7 +461,7 @@ eval `ssh-agent`
 
 ssh-add ~/.ssh/id_rsa
 
-git clone -b master https://github.com/RadgRabbi/dv-backend /home/server/backend/release/target
+git clone -b master https://github.com/dvpay/dv-backend /home/server/backend/release/target
 
 cp /home/server/backend/release/target/.env.example /home/server/backend/release/target/.env
 
