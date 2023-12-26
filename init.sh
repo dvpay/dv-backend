@@ -476,6 +476,11 @@ sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${NEW_PASSWORD}/g" /home/server/backend/re
 sed -i "s/^PAYMENT_FORM_URL=.*/PAYMENT_FORM_URL=https:\/\/${PAYDOMAIN}\/invoices/g" /home/server/backend/release/target/.env
 sed -i "s/^PROCESSING_URL=.*/PROCESSING_URL=https:\/\/$PROCESSING_URL/g" /home/server/backend/release/target/.env
 
+mkdir -p /home/server/backend/release/target/storage/framework/cache
+mkdir -p /home/server/backend/release/target/storage/framework/views
+mkdir -p /home/server/backend/release/target/storage/framework/sessions
+
+
 chown -R server:server /home/server/backend/
 
 chmod -R 775 /home/server/backend/release/target/storage/
