@@ -17,13 +17,13 @@ then
     export OS="redhat"
     export GROUP="wheel"
     export DISTRO="RHEL"
-    if [ "${DISTRO_VERSION}" == "8" ];
+    if [[ "${DISTRO_VERSION}" == "8" || "${DISTRO_VERSION}" == "9" ]];
     then
         if grep -i 'CentOS Stream release' /etc/centos-release &>/dev/null;
         then
             export DISTRO_CODENAME='Stream'
         else
-            echo "This scripts work with Centos 8 Stream or Centos 7"
+            echo "This scripts work with Centos 8,9 Stream or Centos 7"
             exit;
         fi
     fi
@@ -32,8 +32,6 @@ else
     exit;
 fi
 
-echo "Start work"
-
 export DATE=`date +%Y.%m.%d`
 export DAY=`date +%d`
 export DAY2=`date +%-d`
@@ -41,36 +39,38 @@ export MONTH=`date +%m`
 export YEAR=`date +%Y`
 export TIME=`date +%H-%M-%S`
 
-if [[ -z "$1" ]];
-then
-    echo "Write frontend domain:"
-    read FRONT
+if [[ -z "$1" ]]; then
+    read -p "Enter a domain for Merchant control panel (example dv.net): " FRONT
 else
     export FRONT="${1}"
 fi
 
-if [[ -z "$2" ]];
-then
-    echo "Write backend domain:"
-    read BACK
+if [[ -z "$2" ]]; then
+    read -p "Enter backend domain (Press Enter to use the default: api.$FRONT):" BACK
+
+    if [[ -z "$BACK" ]]; then
+        export BACK="api.$FRONT"
+    else
+        export BACK
+    fi
 else
     export BACK="${2}"
 fi
 
-if [[ -z "$3" ]];
-then
-  echo "Write domain for payment form"
-  read PAYDOMAIN
-else
-  export PAYDOMAIN="${3}"
-fi
+if [[ -z "$3" ]]; then
+    read -p "Enter pay form domain (Press Enter to use the default: pay.$FRONT):" PAYDOMAIN
 
-if [[ -z "$4" ]];
-then
-  echo "Write processing url by default install localhost:8082"
-  read PROCESSING_URL
+    if [[ -z "$PAYDOMAIN" ]]; then
+        export PAYDOMAIN="pay.$PAYDOMAIN"
+    else
+        export PAYDOMAIN
+    fi
 else
-  export PROCESSING_URL="${4}"
+    export PAYDOMAIN="${3}"
+fi
+if [ "${FRONT}" == "" ]; then
+    echo "Empty domain for Mechant control panel!"
+    exit;
 fi
 
 if [ "${FRONT}" == "" ];
@@ -91,15 +91,9 @@ then
     exit;
 fi
 
-if [ "${PROCESSING_URL}" == "" ];
-then
-    export PROCESSING_URL="localhost:8082"
-fi
-
 echo "Frontend domain: ${FRONT}"
 echo "Backend domain: ${BACK}"
-echo "Pay dommain: ${PAYDOMAIN}"
-echo "Processing url: ${PROCESSING_URL}"
+echo "Pay domain: ${PAYDOMAIN}"
 
 adduser server
 
@@ -144,7 +138,7 @@ systemctl restart iptables
 
 echo "Install nginx"
 
-if [ "${DISTRO_VERSION}" == "8" ];
+if [[ "${DISTRO_VERSION}" == "8" || "${DISTRO_VERSION}" == "9" ]];
 then
     yum -y module reset nginx
     yum -y module enable nginx:1.20
@@ -287,6 +281,9 @@ echo "Install php"
 if [ "${DISTRO_VERSION}" == "8" ];
 then
     yum -y install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+elif [ "${DISTRO_VERSION}" == "9" ];
+then
+    yum -y install http://rpms.remirepo.net/enterprise/remi-release-9.rpm
 elif [ "${DISTRO_VERSION}" == "7" ];
 then
     yum -y install https://rpms.remirepo.net/enterprise/remi-release-7.rpm
@@ -296,7 +293,7 @@ fi
 
 yum -y remove php*
 
-if [ "${DISTRO_VERSION}" == "8" ];
+if [[ "${DISTRO_VERSION}" == "8" || "${DISTRO_VERSION}" == "9" ]];
 then
     yum -y module reset php
     yum -y module enable php:remi-8.2
@@ -309,7 +306,13 @@ fi
 
 yum -y update
 
-yum -y install php82-php php82-php-{cli,fpm,mysqlnd,pdo_mysql,zip,devel,gd,mbstring,curl,xml,pear,bcmath,json,pecl-redis5,exif,pcntl,sockets,gmp}
+#yum -y install php82-php php82-php-{cli,fpm,mysqlnd,pdo_mysql,zip,devel,gd,mbstring,curl,xml,pear,bcmath,json,pecl-redis5,exif,pcntl,sockets,gmp}
+yum -y install php82-php php82-php-fpm php82-php-cli php82-php-common php82-php-mysqlnd php82-php-gd php82-php-ldap php82-php-odbc php82-php-pdo php82-php-pecl-memcache \
+php82-php-pear php82-php-xml php82-php-xmlrpc php82-php-mbstring php82-php-snmp php82-php-soap php82-php-zip php82-php-opcache php82-php-imap php82-php-bcmath php82-php-intl \
+php82-php-pecl-redis5 php82-php-gmp php82-php-dom php82-php-rdkafka php82-php-memcached php82-php-pdo_mysql php82-php-gd php82-php-mbstring php82-php-curl php82-php-exif php82-php-gmp \
+php82-php-pcntl php82-php-sockets
+
+ln -s /opt/remi/php82/root/usr/bin/php /usr/bin/php
 
 cat > "/etc/opt/remi/php82/php-fpm.d/www.conf" <<EOF
 [www]
@@ -358,7 +361,7 @@ ln -s /usr/local/bin/composer /bin/composer
 
 echo "Install nodejs"
 
-if [ "${DISTRO_VERSION}" == "8" ];
+if [[ "${DISTRO_VERSION}" == "8" || "${DISTRO_VERSION}" == "9" ]];
 then
     yum -y module reset nodejs
     yum -y module enable nodejs:16
@@ -384,6 +387,9 @@ rm -rf /var/lib/mysql/*
 yum -y install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
 percona-release setup -y ps80
 yum -y install percona-server-server percona-server-client percona-server-devel percona-toolkit percona-xtrabackup-80
+echo "skip-log-bin" >> /etc/my.cnf
+echo "log_bin_trust_function_creators = 1" >> /etc/my.cnf
+
 systemctl start mysqld.service
 MYSQLINSTALLPASSWORD=`grep 'temporary password' /var/log/mysqld.log | awk '{print $13}'`
 echo "MySQL install password: ${MYSQLINSTALLPASSWORD}"
@@ -392,7 +398,7 @@ echo "MySQL root password: ${MYSQLPASSWORD}"
 echo ${MYSQLPASSWORD} > /root/mysql.pass
 
 mysql --user=root --password="${MYSQLINSTALLPASSWORD}" --connect-expired-password mysql -Bse "
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY \"${MYSQLPASSWORD}\";
+ALTER USER 'root'@'localhost' IDENTIFIED WITH BY \"${MYSQLPASSWORD}\";
 FLUSH PRIVILEGES;"
 mysql --user=root --password="${MYSQLPASSWORD}" mysql -Bse "
 UPDATE user SET host='%' WHERE user='root';
@@ -415,7 +421,7 @@ send \"${MYSQLPASSWORD}\r\"
 expect eof
 "
 
-mysql --login-path=local -Bse "CREATE DATABASE merchant_dv;"
+mysql --login-path=local -Bse "CREATE DATABASE merchant_dv CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 NEW_USERNAME="merchant_dv"
 NEW_PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 15 | head -n 1)-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -427,15 +433,15 @@ FLUSH PRIVILEGES;"
 
 echo "New MySQL user created: ${NEW_USERNAME}:${NEW_PASSWORD}"
 
-
 systemctl enable mysqld
 
 echo "Copy repositories backend"
 
 mkdir ~/.ssh
 touch ~/.ssh/known_hosts
+
 touch ~/.ssh/id_rsa.pub
-touch ~/.ssh/id_rsa
+touch ~/.ssh/id_rs
 
 ssh-keygen -F git.github.com || sudo ssh-keyscan git.github.com >> ~/.ssh/known_hosts
 
@@ -467,11 +473,11 @@ sed -i "s/^PAYMENT_FORM_URL=.*/PAYMENT_FORM_URL=http:\/\/${PAYDOMAIN}\/invoices/
 sed -i "s/^PROCESSING_URL=.*/PROCESSING_URL=http:\/\/$PROCESSING_URL/g" /home/server/backend/release/target/.env
 
 chown -R server:server /home/server/backend/
-chmod -R 775 /home/server/backend/storage/
-chmod -R 775 /home/server/backend/bootstrap/
+
+chmod -R 775 /home/server/backend/release/target/storage/
+chmod -R 775 /home/server/backend/release/target/bootstrap
 
 sudo -u server -- sh -c 'cd /home/server/backend/release/target; composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts; php artisan key:generate; php artisan migrate --force; php artisan db:seed; php artisan l5-swagger:generate; php artisan cache:currency:rate; php artisan optimize:clear;'
-
 ln -s /home/server/backend/release/target /home/server/backend/www
 
 echo "Copy repositories frontend"
@@ -480,7 +486,7 @@ rm -rf /home/server/frontend/
 
 mkdir -p /home/server/frontend/release/target
 
-git clone -b main https://github.com/RadgRabbi/dv-frontend /home/server/frontend/release/target
+git clone -b main https://github.com/dvpay/dv-frontend /home/server/frontend/release/target
 
 cp /home/server/frontend/release/target/.env.example /home/server/frontend/release/target/.env
 
