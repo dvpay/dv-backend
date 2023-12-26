@@ -62,7 +62,7 @@ Prepare a virtual machine with CentOS. All necessary update packages will be ins
 Login to your virtual machine as a **root user** and launch the script below:
 
 ```shell
-bash <(curl -Ls https://raw.githubusercontent.com/RadgRabbi/dv-backend/master/init.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/dvpay/dv-backend/master/init.sh)
 ```
 System will ask you to enter domains, follow next step.
 
