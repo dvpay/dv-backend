@@ -7,15 +7,23 @@ namespace App\Services\Heartbeat;
 use App\Dto\ServiceLogHistoryDto;
 use App\Enums\HeartbeatServiceName;
 use App\Enums\HeartbeatStatus;
+use App\Enums\TransactionType;
+use App\Helpers\DateTimeFormatter;
 use App\Jobs\HeartbeatStatusJob;
 use App\Models\Model;
 use App\Models\Service;
 use App\Models\ServiceLog;
 use App\Models\ServiceLogLaunch;
+use App\Models\Store;
+use App\Models\Transaction;
+use App\Models\User;
+use Carbon\Carbon;
 use DateTime;
 use Illuminate\Cache\Repository;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Queue\Factory;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use LaravelIdea\Helper\App\Models\_IH_Model_C;
 use LaravelIdea\Helper\App\Models\_IH_Service_C;
 use Psr\SimpleCache\InvalidArgumentException;
@@ -171,6 +179,52 @@ class HeartbeatService
 
         return $statuses;
     }
+
+    public function getUserFinancialStatsForDashboard(User|Authenticatable $user): array
+    {
+
+        $lastSuccessfulDepositTransactionTime = Transaction::query()
+            ->select('created_at')
+            ->where('user_id', $user->id)
+            ->where('type', TransactionType::Invoice)
+            ->orderBy('created_at_index','desc')
+            ->pluck('created_at')
+            ->first()
+        ;
+
+        if($lastSuccessfulDepositTransactionTime instanceof Carbon) {
+            $lastSuccessfulDepositTransactionTime =
+                DateTimeFormatter::getAgoTimeText($lastSuccessfulDepositTransactionTime->format(DATE_ATOM));
+        }
+
+        $lastSuccessfulWithdrawTransactionTime = Transaction::query()
+            ->select('created_at')
+            ->where('user_id', $user->id)
+            ->where('type', TransactionType::Transfer)
+            ->orderBy('created_at_index','desc')
+            ->pluck('created_at')
+            ->first()
+        ;
+
+        if($lastSuccessfulWithdrawTransactionTime instanceof Carbon) {
+            $lastSuccessfulWithdrawTransactionTime =
+                DateTimeFormatter::getAgoTimeText($lastSuccessfulWithdrawTransactionTime->format(DATE_ATOM));
+        }
+
+        $stats = [
+            'coldWalletsUsdSum'     => Cache::get('custodial-wallets-balance-usd-user-' . $user->id) ?? 0,
+            'exchangeWalletsUsdSum' => Cache::get('exchange-wallets-balance-usd-user-' . $user->id) ?? 0,
+            'unconfirmedBtcTransactions' => Cache::get('unconfirmed-' . $user->id)['usd'] ?? 0,
+            'lastSuccessfulDepositTransactionTime' => $lastSuccessfulDepositTransactionTime,
+            'lastSuccessfulWithdrawTransactionTime' => $lastSuccessfulWithdrawTransactionTime,
+
+        ];
+
+        return $stats;
+    }
+
+
+
 
     /**
      * @param string $datetime

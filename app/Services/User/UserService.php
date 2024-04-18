@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\User;
 
 use App\Dto\Models\UserDto;
+use App\Enums\PermissionsEnum;
 use App\Enums\TelegramNotificationStatus;
 use App\Enums\UserRole;
 use App\Enums\UserTokenType;
@@ -30,22 +31,23 @@ use Throwable;
 readonly class UserService
 {
     /**
-     * @param  OwnerContract  $owner
-     * @param  Connection  $db
-     * @param  Hasher  $hash
-     * @param  Mailer  $mail
+     * @param OwnerContract $owner
+     * @param Connection $db
+     * @param Hasher $hash
+     * @param Mailer $mail
      */
     public function __construct(
-            private OwnerContract $owner,
-            private Connection    $db,
-            private Hasher        $hash,
-            private Mailer        $mail,
-            private Google2FA     $google2FA,
-    ) {
+        private OwnerContract $owner,
+        private Connection    $db,
+        private Hasher        $hash,
+        private Mailer        $mail,
+        private Google2FA     $google2FA,
+    )
+    {
     }
 
     /**
-     * @param  UserDto  $dto
+     * @param UserDto $dto
      * @return User
      * @throws Throwable
      */
@@ -55,14 +57,14 @@ readonly class UserService
             $this->db->beginTransaction();
 
             $user = User::create([
-                    'email'    => $dto->email,
-                    'name'     => $dto->name ?? '',
-                    'password' => $this->hash->make($dto->password),
-                    'is_admin' => $dto->isAdmin ?? false,
-                    'location' => $dto->location ?? null,
+                'email'    => $dto->email,
+                'name'     => $dto->name ?? '',
+                'password' => $this->hash->make($dto->password),
+                'is_admin' => $dto->isAdmin ?? false,
+                'location' => $dto->location ?? null,
             ]);
 
-            $user->processing_owner_id = $this->owner->createOwner(config('app.app_domain').'-user-'.$user->id);
+            $user->processing_owner_id = $this->owner->createOwner(config('app.app_domain') . '-user-' . $user->id);
             $user->save();
 
             $user->assignRole($role);
@@ -82,7 +84,7 @@ readonly class UserService
     /**
      * Send confirmation email
      *
-     * @param  User  $user
+     * @param User $user
      * @return void
      */
 
@@ -90,13 +92,13 @@ readonly class UserService
     /**
      * Verify user email
      *
-     * @param  string  $tokenText
+     * @param string $tokenText
      * @return bool
      * @throws Throwable
      */
     public function verifyEmail(User $user, string $tokenText): bool
     {
-        if (!hash_equals($tokenText, sha1($user->getEmailForVerification().$user->created_at.$user->id))) {
+        if (!hash_equals($tokenText, sha1($user->getEmailForVerification() . $user->created_at . $user->id))) {
             return false;
         }
 
@@ -111,8 +113,8 @@ readonly class UserService
     /**
      * Checks if token exists and it has some ability
      *
-     * @param  PersonalAccessToken|null  $token
-     * @param  string  $ability
+     * @param PersonalAccessToken|null $token
+     * @param string $ability
      * @return bool
      */
     public function checkTokenCan(?PersonalAccessToken $token, UserTokenType $ability): bool
@@ -121,10 +123,9 @@ readonly class UserService
             return false;
         }
 
-        // Проверяем права токена
         if (
-                $token->cant($ability)
-                || $token->name !== $ability
+            $token->cant($ability)
+            || $token->name !== $ability
         ) {
             return false;
         }
@@ -135,8 +136,8 @@ readonly class UserService
     /**
      * Update user password
      *
-     * @param  string  $tokenText
-     * @param  string  $password
+     * @param string $tokenText
+     * @param string $password
      * @return bool
      * @throws Throwable
      */
@@ -159,7 +160,6 @@ readonly class UserService
                 return false;
             }
 
-            // Отзываем все текущие токены
             if (!$this->revokeAllTokens($user)) {
                 $this->db->rollBack();
                 return false;
@@ -177,29 +177,28 @@ readonly class UserService
     /**
      * Revoke all user tokens
      *
-     * @param  User  $user
+     * @param User $user
      * @return bool
      */
     public static function revokeAllTokens(User $user): bool
     {
-        return (bool) $user->tokens()->delete();
+        return (bool)$user->tokens()->delete();
     }
 
     /**
      * Send confirmation Email to reset user password
      *
-     * @param  string  $email
+     * @param string $email
      * @return bool
      */
     public function resetPassword(string $email): bool
     {
         $user = User::whereEmail($email)->first();
 
-        // Генерируем токен
         $token = $user->createToken(UserTokenType::ResetPassword->name, [UserTokenType::ResetPassword->value]);
 
         $this->mail->to($user->email)
-                ->queue(new ResetPasswordEmail($user, $token->plainTextToken));
+            ->queue(new ResetPasswordEmail($user, $token->plainTextToken));
 
         return true;
     }
@@ -213,25 +212,26 @@ readonly class UserService
         }
 
         $url = $user->google2fa_secret
-                ? $this->google2FA->getQRCodeUrl(config('app.app_domain'), $user->email, $user->google2fa_secret)
-                : null;
+            ? $this->google2FA->getQRCodeUrl(config('app.app_domain'), $user->email, $user->google2fa_secret)
+            : null;
 
         return [
-                'email'                => $user->email,
-                'roles'                => $user->getRoleNames(),
-                'permissions'          => $user->getPermissionNames(),
-                'telegramNotification' => $telegramNotification,
-                'location'             => $user->location,
-                'language'             => $user->language,
-                'phone'                => $user->phone,
-                'isEmailVerified'      => $user->hasVerifiedEmail(),
-                'google2faSecret'      => $user->google2fa_secret,
-                'google2faUrl'         => $url,
-                'google2faStatus'      => $user->google2fa_status,
-                'permission'           => [
-                        'withdrawal' => $user->hasPermissionTo('transfer funds'),
-                        'storePay'   => $user->hasPermissionTo('stop pay')
-                ]
+            'email'                => $user->email,
+            'roles'                => $user->getRoleNames(),
+            'permissions'          => $user->getPermissionNames(),
+            'telegramNotification' => $telegramNotification,
+            'location'             => $user->location,
+            'language'             => $user->language,
+            'phone'                => $user->phone,
+            'isEmailVerified'      => $user->hasVerifiedEmail(),
+            'google2faSecret'      => $user->google2fa_secret,
+            'google2faUrl'         => $url,
+            'google2faStatus'      => $user->google2fa_status,
+            'permission'           => [
+                'withdrawal'   => $user->hasPermissionTo(PermissionsEnum::TransfersFunds->value),
+                'storePay'     => $user->hasPermissionTo(PermissionsEnum::StopStorePay->value),
+                'stopExchange' => $user->hasPermissionTo(PermissionsEnum::ExchangeStop->value)
+            ]
         ];
     }
 
@@ -253,15 +253,15 @@ readonly class UserService
     public function getAllRoot()
     {
         return User::select('id')
-                ->role(UserRole::Root->value)
-                ->with(['telegram', 'notificationTarget'])
-                ->get();
+            ->role(UserRole::Root->value)
+            ->with(['telegram', 'notificationTarget'])
+            ->get();
     }
 
     /**
-     * @param  User  $user
-     * @param  string  $newPassword
-     * @param  string  $oldPassword
+     * @param User $user
+     * @param string $newPassword
+     * @param string $oldPassword
      * @return User
      * @throws Throwable
      */
@@ -272,7 +272,7 @@ readonly class UserService
         }
 
         $user->update([
-                'password' => $this->hash->make($newPassword)
+            'password' => $this->hash->make($newPassword)
         ]);
 
         $user->tokens()->where('id', '!=', $user->currentAccessToken()?->id)->delete();
@@ -287,14 +287,14 @@ readonly class UserService
     public function getAllUser(Request $request): LengthAwarePaginator|User|\Illuminate\Pagination\LengthAwarePaginator
     {
         return User::with('roles')
-                ->with('stores')
-                ->with('storesHolder')
-                ->paginate($request->input('perPage'));
+            ->with('stores')
+            ->with('storesHolder')
+            ->paginate($request->input('perPage'));
     }
 
     /**
-     * @param  User  $user
-     * @param  array  $roles
+     * @param User $user
+     * @param array $roles
      * @return User
      */
     public function updateUserRoles(User $user, array $roles): User
@@ -304,7 +304,7 @@ readonly class UserService
 
 
     /**
-     * @param  User  $user
+     * @param User $user
      * @return User
      * @throws Throwable
      */
@@ -327,15 +327,16 @@ readonly class UserService
     }
 
     /**
-     * @param  User  $user
-     * @param  Request  $request
+     * @param User $user
+     * @param Request $request
      * @return LengthAwarePaginator|\Illuminate\Pagination\LengthAwarePaginator|array
      */
     public function getInvitedByUser(User    $user,
                                      Request $request
-    ): LengthAwarePaginator|\Illuminate\Pagination\LengthAwarePaginator|array {
+    ): LengthAwarePaginator|\Illuminate\Pagination\LengthAwarePaginator|array
+    {
         return Invite::where('user_id', $user->id)
-                ->with('user.roles')
-                ->paginate($request->input('perPage'));
+            ->with('user.roles')
+            ->paginate($request->input('perPage'));
     }
 }

@@ -15,13 +15,14 @@ class UpdateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-                'name'                  => ['required', 'string', 'min:1', 'max:255'],
-                'site'                  => ['string', 'nullable', 'url', 'max:255'],
-                'currency'              => ['required', 'string', 'max:255', new FiatCurrency],
-                'invoiceExpirationTime' => ['required', 'int', 'min:1', 'max:1440'],
-                'addressHoldTime'       => ['required', 'int', 'min:1', 'max:2880'],
-                'status'                => ['required', 'boolean'],
-                'staticAddresses'       => ['required', 'boolean'],
+            'name'                  => ['required', 'string', 'min:1', 'max:255'],
+            'site'                  => ['string', 'nullable', 'url', 'max:255'],
+            'currency'              => ['required', 'string', 'max:255', new FiatCurrency],
+            'invoiceExpirationTime' => ['required', 'int', 'min:1', 'max:1440'],
+            'addressHoldTime'       => ['required', 'int', 'min:1', 'max:2880'],
+            'status'                => ['required', 'boolean'],
+            'staticAddresses'       => ['required', 'boolean'],
+            'minimalPayment'        => ['required', 'numeric', 'min:0.01', 'max:100']
         ];
     }
 }

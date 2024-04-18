@@ -19,21 +19,21 @@ DV Pay API is a free and open-source cryptocurrency payment processor which allo
 
 
 ## 💵 Support currency
-- [x] Bitcoin 
-- [x] USDT (TRC20) 
-- [ ] ETH  
+- [x] Bitcoin
+- [x] USDT (TRC20)
+- [ ] ETH
 - [ ] USDT (ERC20)
 
 ## ⚙️ Requirements
 * СentOS 7 or 8
 * PHP ^8.1
-* MySQL Percona 8.0+ 
+* MySQL Percona 8.0+
 * Redis
 * Nginx
 
 ## 👨‍💻 Using Technology
 
-Based on laravel framework with any popular laravel package 
+Based on laravel framework with any popular laravel package
 
 # 🚀 How to install project:
 
@@ -62,7 +62,7 @@ Prepare a virtual machine with CentOS. All necessary update packages will be ins
 Login to your virtual machine as a **root user** and launch the script below:
 
 ```shell
-bash <(curl -Ls https://raw.githubusercontent.com/RadgRabbi/dv-backend/master/init.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/dvpay/dv-backend/master/init.sh)
 ```
 System will ask you to enter domains, follow next step.
 
@@ -74,46 +74,7 @@ Enter your domains, which you got during [preparation](#prepairing-for-installat
 <img src="https://i.ibb.co/pLXL2qk/Domains.jpg" alt="Domains border="0">
 </p>
 
-### Step 3. Enter processing URL
-
-If you are going to use your own payments processing - enter IP or URL here. If not - ask [DV Support](https://t.me/dv_pay_support) to use ours ablosutely free!
-
-<p align="center">
-<img src="https://i.ibb.co/LzHQ1Ss/tg-image-4049204792.jpg" alt="Processing domain" border="0">
-</p>
-
 After entering processing URL script will continue installation. In the end of script you will be provided with **DV Credentials - copy it to a safe place.**
-
-### Step 5. Edit configuration file
-
-1. Use a command to move in 'frontend/www' directory:
-
-    ```shell
-    cd ./home/server/frontend/www
-    ```
-    and edit `.env` file (any editor. we use "nano" in this guide):
-
-    ```shell
-    nano .env
-    ```
-
-2. In the editor change `http` to `https`
-
-<p align="center">
-<img src="https://i.ibb.co/kgGrDYj/http.jpg" alt="http" border="0">
-</p>
-<p align="center">↓</p>
-<p align="center">
-<img src="https://i.ibb.co/h2K3Ln7/https.jpg" alt="https" border="0">
-</p>
-
-Save and exit.
-
-3. Rebuild your frontend with the command:
-
-    ```shell
-    npm run build
-    ```
 
 DV backend is now successfully installed! Now you are ready to launch DV admin app - use your domain and credentials you were provided earlier to log in.
 

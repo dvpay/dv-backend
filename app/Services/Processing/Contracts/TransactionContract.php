@@ -15,15 +15,6 @@ interface TransactionContract
      */
     public function info(string $txId): ProcessingTransactionInfoDto;
 
-    /**
-     * Set transaction to invoice
-     *
-     * @param string $txId
-     * @param string $watchId
-     * @return void
-     */
-    public function attachTransactionToInvoice(string $txId, string $watchId, string $ownerId): void;
-
     public function getTransactionByAddress(string $ownerId, string $address): array;
 
 }

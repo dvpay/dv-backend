@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +16,7 @@ class InvoiceCreationNotification extends Notification implements ShouldQueue
 
     public function __construct(private readonly Invoice $invoice)
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -32,8 +33,8 @@ class InvoiceCreationNotification extends Notification implements ShouldQueue
         return (new MailMessage())
                 ->subject(__('Invoice created'))
                 ->greeting(__('Invoice created'))
-                ->line(__('Store name', ['name' => $this->invoice?->store?->name]))
-                ->line(__('Invoice Amount',
+                ->line(__('Store: *:name*', ['name' => $this->invoice?->store?->name]))
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->invoice->amount, 'currency' => $this->invoice?->currency_id]))
                 ->action(__('View Invoice'), config('setting.payment_form_url').$this->invoice->id)
                 ->salutation(' ');
@@ -50,8 +51,8 @@ class InvoiceCreationNotification extends Notification implements ShouldQueue
                 ->to($notifiable?->telegram?->chat_id)
                 ->content(__('Invoice created'))
                 ->line("")
-                ->line(__('Store name', ['name' => $this->invoice?->store?->name]))
-                ->line(__('Invoice Amount',
+                ->line(__('Store: *:name*', ['name' => $this->invoice?->store?->name]))
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->invoice->amount, 'currency' => $this->invoice?->currency_id]))
                 ->button(__('View Invoice'), config('setting.payment_form_url').$this->invoice->id);
     }

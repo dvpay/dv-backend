@@ -38,10 +38,9 @@ class AddressController extends Controller
     #[OA\Get(
         path: '/address/{payer}/{currency}',
         summary: 'Get static address for payer',
-        tags: ['payer'],
+        security: [["apiKeyAuth" => []]],
+        tags: ['Payer'],
         parameters: [
-            new OA\Parameter(name: 'X-Api-Key', in: 'header', required: true,
-                schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'payer', description: 'Your unique user ID', in: 'path', required: true,
                 schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'currency', description: 'Currency example BTC.Bitcoin, USDT.Tron', in: 'path', required: true,
@@ -72,14 +71,6 @@ class AddressController extends Controller
     {
         $store = $this->storeRepository->getStoreByApiKey($request->header('X-Api-Key'));
 
-        if (!$store->status) {
-            throw new ServiceUnavailableException(message: "Store inactive");
-        }
-
-        if (!$store->static_addresses) {
-            throw new ApiException(__('Static address generation is disabled in store settings'), Response::HTTP_FORBIDDEN);
-        }
-
         $currency = Currency::where('id', $request->input('currency'))
             ->firstOrFail();
 
@@ -103,6 +94,7 @@ class AddressController extends Controller
     #[OA\Post(
         path: '/payer/addresses',
         summary: 'Get static address for payer in all currency',
+        security: [["apiKeyAuth" => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: [
@@ -122,11 +114,7 @@ class AddressController extends Controller
                 )
             ]
         ),
-        tags: ['payer'],
-        parameters: [
-            new OA\Parameter(name: 'X-Api-Key', in: 'header', required: true,
-                schema: new OA\Schema(type: 'string')),
-        ],
+        tags: ['Payer'],
         responses: [
             new OA\Response(response: 200, description: "Payer created", content: new OA\JsonContent(
                 example: '{"result": [{"blockchain": "bitcoin","currency": "BTC.Bitcoin","address": "bc1qwzefc7fp8tdlnv0es3pk6snad22hhet528d50e86","rate": "26568.16995000","payer": {"id": "de95717c-9814-4887-ba6b-94fc31eb6973","storeUserId": "1232143","payerUrl": "https://dv.net/invoices/payer/de95717c-9814-4887-ba6b-94fc31eb6973"}},{"blockchain": "tron","currency": "USDT.Tron","address": "TKn5GuNb62KgQh7SLXznUrP33Nae28d50e86","rate": "1","payer": {"id": "de95717c-9814-4887-ba6b-94fc31eb6973","storeUserId": "1232143","payerUrl": "https://dv.net/invoices/payer/de95717c-9814-4887-ba6b-94fc31eb6973"}}],"errors": []}'

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services\Processing\Fake;
 
 use App\Enums\Blockchain;
+use App\Exceptions\ApiException;
 use App\Services\Processing\Contracts\OwnerContract;
 
 readonly class OwnerFake implements OwnerContract
@@ -17,8 +18,12 @@ readonly class OwnerFake implements OwnerContract
         return fake()->uuid();
     }
 
-    public function attachColdWalletWithAddress(Blockchain $blockchain, string $owner, array $address): array
+    public function attachColdWalletWithAddress(Blockchain $blockchain, string $owner, array $address, ?string $validateCode = null): array
     {
+
+        if (isset($validateCode) && $validateCode !== '111111') {
+            throw new ApiException('Invalid code', 400);
+        }
         return $address;
     }
 
@@ -35,5 +40,14 @@ readonly class OwnerFake implements OwnerContract
     public function updateCallbackUrl(string $clientID, string $url): true
     {
         return true;
+    }
+
+    public function telegramDeepLink(string $owner): array
+    {
+        return [
+            "owner" => $owner,
+			"deeplink" =>  'tglink.com',
+			"hasChatID" => true,
+        ];
     }
 }

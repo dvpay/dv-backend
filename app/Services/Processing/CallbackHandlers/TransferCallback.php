@@ -8,23 +8,27 @@ use App\Dto\ProcessingCallbackDto;
 use App\Enums\CurrencySymbol;
 use App\Enums\RateSource;
 use App\Enums\TransactionType;
+use App\Exceptions\ApiException;
 use App\Exceptions\CallbackException;
 use App\Models\Currency;
+use App\Models\PayerAddress;
 use App\Models\Transaction;
+use App\Models\UnconfirmedTransaction;
 use App\Models\User;
 use App\Services\Currency\CurrencyConversion;
 use App\Services\Currency\CurrencyRateService;
 use App\Services\Processing\Contracts\CallbackHandlerContract;
 use Illuminate\Database\Connection;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-class TransferCallback implements CallbackHandlerContract
+readonly class TransferCallback implements CallbackHandlerContract
 {
     public function __construct(
-        private readonly Connection          $db,
-        private readonly CurrencyRateService $currencyService,
-        private readonly CurrencyConversion  $currencyConversion,
+        private Connection          $db,
+        private CurrencyRateService $currencyService,
+        private CurrencyConversion  $currencyConversion,
     )
     {
     }
@@ -35,6 +39,11 @@ class TransferCallback implements CallbackHandlerContract
     public function handle(ProcessingCallbackDto $dto): void
     {
         try {
+            PayerAddress::where([
+                ['blockchain', $dto->blockchain],
+                ['address', $dto->sender]
+            ])->firstOrFail();
+
             $this->db->beginTransaction();
 
             if ((float)$dto->amount < 0) {
@@ -44,6 +53,7 @@ class TransferCallback implements CallbackHandlerContract
             $transactionExists = Transaction::where('tx_id', $dto->tx)
                 ->where('from_address', $dto->sender)
                 ->where('to_address', $dto->address)
+                ->where('amount', $dto->amount)
                 ->exists();
 
             if ($transactionExists) {
@@ -59,6 +69,12 @@ class TransferCallback implements CallbackHandlerContract
             ])->first();
 
             $user = User::where('processing_owner_id', $dto->ownerId)->first();
+
+            if ($this->checkConfirmation($dto)) {
+                $this->createUnconfirmedTransaction($dto, $user, $currency);
+                $this->db->commit();
+                throw new ApiException(__('Low Confirmations'), 422);
+            }
             $this->createTransaction($dto, $user, $currency);
 
             $this->db->commit();
@@ -96,5 +112,30 @@ class TransferCallback implements CallbackHandlerContract
             'bandwidth'            => $dto->bandwidth
         ]);
     }
+
+    private function checkConfirmation(ProcessingCallbackDto $dto): bool
+    {
+        if ($dto->confirmations < config('processing.min_transaction_confirmations')) {
+            return true;
+        }
+        return false;
+    }
+
+    private function createUnconfirmedTransaction(ProcessingCallbackDto $dto, User $user, Currency $currency): void
+    {
+        UnconfirmedTransaction::firstOrCreate([
+            'currency_id' => $currency->id,
+            'tx_id'       => $dto->tx,
+        ], [
+            'user_id'      => $user->id,
+            'store_id'     => null,
+            'invoice_id'   => null,
+            'from_address' => $dto->sender ?? '',
+            'to_address'   => $dto->address,
+            'tx_id'        => $dto->tx,
+            'currency_id'  => $currency->id
+        ]);
+    }
+
 }
 

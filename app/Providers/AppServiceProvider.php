@@ -2,9 +2,6 @@
 
 namespace App\Providers;
 
-use App\Console\Commands\ExplorerServiceStatusCheck;
-use App\Console\Commands\NodeStatusCheck;
-use App\Console\Commands\NodeVersionControl;
 use App\Console\Commands\TelegramWebhookSet;
 use App\Enums\WithdrawalRuleType;
 use App\Http\Controllers\Api\DictionaryController;
@@ -25,26 +22,22 @@ use App\Services\HotWallet\HotWalletService;
 use App\Services\HotWallet\HotWalletServiceInterface;
 use App\Services\Invoice\InvoiceAddressCreator;
 use App\Services\Invoice\InvoiceAddressService;
-use App\Services\Invoice\InvoiceAddressServiceNew;
 use App\Services\Invoice\InvoiceCreator;
 use App\Services\Invoice\InvoiceService;
-use App\Services\Processing\Contracts\AddressContract;
-use App\Services\Processing\ProcessingCallbackHandler;
 use App\Services\Report\ReportService;
 use App\Services\Store\StoreService;
 use App\Services\Telegram\TelegramService;
 use App\Services\Withdrawal\Rules\Interval;
 use App\Services\Withdrawal\Rules\MinBalance;
-use App\Services\Withdrawal\TransferRuleManager;
 use App\Services\Withdrawal\WithdrawalRuleManager;
 use App\Services\Webhook\WebhookDataService;
 use App\Services\Webhook\WebhookManager;
 use App\Services\Webhook\WebhookSender;
 use App\Services\Withdrawal\WithdrawalSettingService;
+use App\Services\WithdrawalWallet\WithdrawalWalletService;
 use App\Support\Macros\CreateUpdateOrDelete;
 use GuzzleHttp\Client;
 use Illuminate\Cache\Repository;
-use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\ServiceProvider;
 use TelegramBot\Api\BotApi;
@@ -72,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
             return (new CreateUpdateOrDelete($hasMany, $records, $recordKeyName))();
         });
 
+
         $this->app->bind(DictionaryController::class, fn() => new DictionaryController(
             $this->app->get(DictionaryService::class),
             $this->app->get('cache.store')
@@ -92,15 +86,12 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(InvoiceAddressCreator::class, fn() => new InvoiceAddressCreator(
-            $this->app->get(AddressContract::class),
             $this->app->get(CurrencyRateService::class),
-            $this->app->get(CurrencyConversion::class),
         ));
 
         $this->app->bind(InvoiceController::class, fn() => new InvoiceController(
             $this->app->get(InvoiceService::class),
             $this->app->get(InvoiceAddressService::class),
-            $this->app->get(InvoiceAddressServiceNew::class),
             $this->app->get(InvoiceCreator::class),
             $this->app->get(InvoiceAddressCreator::class),
             $this->app->get(StoreRepository::class),
@@ -116,6 +107,7 @@ class AppServiceProvider extends ServiceProvider
             $this->app->get(CurrencyRateService::class),
             $this->app->get(CurrencyConversion::class),
             $this->app->get(CurrencyRepository::class),
+            $this->app->get(WithdrawalWalletService::class),
             config('setting.invoice_lifetime')
         ));
 
@@ -127,12 +119,6 @@ class AppServiceProvider extends ServiceProvider
                 config('setting.repeat_job_timeout')
             );
         });
-
-        $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
-            $this->app->get(CurrencyConversion::class),
-            $this->app->get(Connection::class),
-            config('processing.min_transaction_confirmations')
-        ));
 
         $this->app->bind(CheckSign::class, fn() => new CheckSign(
             config('processing.client.webhookKey')
@@ -159,21 +145,6 @@ class AppServiceProvider extends ServiceProvider
             ],
         ));
 
-        $this->app->bind(ExplorerServiceStatusCheck::class, fn() => new ExplorerServiceStatusCheck(
-            $this->app->get(Client::class),
-            config('explorer.bitcoinExplorerUrl', ''),
-            config('explorer.tronExplorerUrl', ''),
-        ));
-
-        $this->app->bind(NodeStatusCheck::class, fn() => new NodeStatusCheck(
-            $this->app->get(Client::class),
-            config('node.url'),
-        ));
-
-        $this->app->bind(NodeVersionControl::class, fn() => new NodeVersionControl(
-            $this->app->get(Client::class),
-            config('node.url'),
-        ));
 
         $this->app->bind(TelegramWebhookSet::class, fn() => new TelegramWebhookSet(
             $this->app->get(TelegramService::class),

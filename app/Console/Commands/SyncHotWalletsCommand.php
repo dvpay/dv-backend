@@ -58,7 +58,6 @@ class SyncHotWalletsCommand extends Command
                         'currencyId' => CurrencyId::tryFrom($currency->id),
                         'user'       => $user,
                         'address'    => $address->address,
-                        'state'      => HotWalletState::Busy,
                         'blockchain' => $currency->blockchain,
                         'amount'     => $address->balance,
                         'amountUsd'  => (float)$amount,

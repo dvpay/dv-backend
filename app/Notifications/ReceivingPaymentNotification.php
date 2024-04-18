@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use App\Models\Currency;
 use App\Models\Transaction;
 use Illuminate\Bus\Queueable;
@@ -18,7 +19,7 @@ class ReceivingPaymentNotification extends Notification implements ShouldQueue
 
     public function __construct(private readonly Transaction $transaction)
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
         $this->explorerLink = $this->getExplorerUrl($transaction->currency_id, $transaction->tx_id);
     }
 
@@ -30,14 +31,14 @@ class ReceivingPaymentNotification extends Notification implements ShouldQueue
     public function toMail(): MailMessage
     {
         return (new MailMessage())
-                ->subject(__('Receipt funds'))
-                ->greeting(__('Receipt funds'))
-                ->line(__('Transaction id', ['txId' => $this->transaction->tx_id]))
-                ->line(__('From address', ['address' => $this->transaction->from_address]))
-                ->line(__('To address', ['address' => $this->transaction->to_address]))
-                ->line(__('Invoice Amount',
+                ->subject('*' . __('Receipt funds') . '*')
+                ->greeting('*' . __('Receipt funds') . '*')
+                ->line(__('Transaction id: :txId', ['txId' => $this->transaction->tx_id]))
+                ->line(__('From address: :address', ['address' => $this->transaction->from_address]))
+                ->line(__('To address: :address', ['address' => $this->transaction->to_address]))
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->transaction->amount, 'currency' => $this->transaction->currency_id]))
-                ->line(__('Invoice Amount',
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->transaction->amount_usd, 'currency' => $this->transaction->currency_id]))
                 ->line(__('Invoice').': '.$this->transaction?->invoice_id)
                 ->action(__('Explorer link'), $this->explorerLink)
@@ -48,14 +49,14 @@ class ReceivingPaymentNotification extends Notification implements ShouldQueue
     {
         return TelegramMessage::create()
                 ->to($notifiable?->telegram->chat_id)
-                ->content(__('Receipt funds'))
+                ->content('*' . __('Receipt funds') . '*')
                 ->line("")
-                ->line(__('Transaction id', ['txId' => $this->transaction->tx_id]))
-                ->line(__('From address', ['address' => $this->transaction->from_address]))
-                ->line(__('To address', ['address' => $this->transaction->to_address]))
-                ->line(__('Invoice Amount',
+                ->line(__('Transaction id: :txId', ['txId' => $this->transaction->tx_id]))
+                ->line(__('From address: :address', ['address' => $this->transaction->from_address]))
+                ->line(__('To address: :address', ['address' => $this->transaction->to_address]))
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->transaction->amount, 'currency' => $this->transaction->currency_id]))
-                ->line(__('Invoice Amount',
+                ->line(__('Amount: *:amount* :currency',
                         ['amount' => $this->transaction->amount_usd, 'currency' => $this->transaction->currency_id]))
                 ->line(__('Invoice').': '.$this->transaction?->invoice_id)
                 ->button(__('Explorer link'), $this->explorerLink);

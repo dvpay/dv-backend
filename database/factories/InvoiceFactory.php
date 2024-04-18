@@ -16,7 +16,7 @@ class InvoiceFactory extends Factory
     {
         return [
             'status' => InvoiceStatus::Waiting,
-            'store_id' => $this->faker->uuid,
+            'store_id' => Store::factory(),
             'order_id' => Str::random(10),
             'currency_id' => CurrencySymbol::USD->value,
             'amount' => 100.1,

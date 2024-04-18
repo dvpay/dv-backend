@@ -33,10 +33,6 @@ class TransactionFake implements TransactionContract
         ]);
     }
 
-    public function attachTransactionToInvoice(string $txId, string $watchId, string $ownerId): void
-    {
-    }
-
     public function getTransactionByAddress(string $ownerId, string $address): array
     {
         return [

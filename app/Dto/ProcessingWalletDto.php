@@ -13,5 +13,6 @@ class ProcessingWalletDto extends ArrayDto
     public readonly string $energy;
     public readonly string $bandwidthLimit;
     public readonly string $bandwidth;
+    public readonly string $transferType;
 
 }

@@ -9,8 +9,9 @@ use App\Jobs\HeartbeatStatusJob;
 use App\Models\ExchangeWithdrawalWallet;
 use App\Models\Service;
 use App\Models\ServiceLogLaunch;
-use App\Services\Exchange\ExchangeManagerInterface;
+use App\Services\Exchange\ExchangeManager;
 use Illuminate\Console\Command;
+use Throwable;
 
 class WithdrawalCommand extends Command
 {
@@ -20,8 +21,9 @@ class WithdrawalCommand extends Command
 
     private ServiceLogLaunch $serviceLogLaunch;
     private Service $service;
+
     public function __construct(
-        private readonly ExchangeManagerInterface $exchangeManager,
+        private readonly ExchangeManager $exchangeManager,
     )
     {
         parent::__construct();
@@ -41,15 +43,21 @@ class WithdrawalCommand extends Command
             ->get();
 
         foreach ($exchangeWithdrawalWallets as $exchangeWithdrawalWallet) {
-            $exchangeService = $this->exchangeManager->make($exchange, $exchangeWithdrawalWallet->user);
-            $exchangeService->withdrawalFromExchange();
+            $exchangeService = $this->exchangeManager
+                ->setUser($exchangeWithdrawalWallet->user)
+                ->driver('huobi');
+            try {
+                $exchangeService->withdrawalFromExchange();
 
-            HeartbeatStatusJob::dispatch(
-                service: $this->service,
-                status: HeartbeatStatus::InProgress,
-                message: 'Success withdrawal',
-                serviceLogLaunch: $this->serviceLogLaunch,
-            );
+                HeartbeatStatusJob::dispatch(
+                    service: $this->service,
+                    status: HeartbeatStatus::InProgress,
+                    message: 'Success withdrawal',
+                    serviceLogLaunch: $this->serviceLogLaunch,
+                );
+            } catch (Throwable) {
+                continue;
+            }
         };
 
         HeartbeatStatusJob::dispatch(

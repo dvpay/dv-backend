@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,7 +19,7 @@ class WebhookErrorNotification extends Notification implements ShouldQueue
         private readonly array   $data
     )
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -29,11 +30,11 @@ class WebhookErrorNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage())
-                ->subject(__('Webhook to store did not send', ['store' => $this->invoice?->store?->name]))
-                ->greeting(__('Webhook to store did not send', ['store' => $this->invoice?->store?->name]))
+                ->subject('*' . __('Webhook to store did not send', ['store' => $this->invoice?->store?->name]) . '*')
+                ->greeting(__('*'. 'Webhook to store did not send', ['store' => $this->invoice?->store?->name]) . '*')
                 ->line(__('Invoice') . ': ' . $this->invoice->id)
                 ->line(__('Response status code', ['code' => $this->data['code']]))
-                ->line(__('Response') . $this->data['response'])
+                ->line(__('Response') . ': ' . $this->data['response'])
                 ->salutation(' ');
     }
 
@@ -41,10 +42,10 @@ class WebhookErrorNotification extends Notification implements ShouldQueue
     {
         return TelegramMessage::create()
             ->to($notifiable?->telegram->chat_id)
-            ->content(__('Webhook to store did not send', ['store' => $this->invoice?->store?->name]))
+            ->content('*' . __('Webhook to store did not send', ['store' => $this->invoice?->store?->name]) . '*')
             ->line("")
             ->line(__('Invoice') . ': ' . $this->invoice->id)
             ->line(__('Response status code', ['code' => $this->data['code']]))
-            ->line(__('Response') . $this->data['response']);
+            ->line(__('Response') . ': ' . $this->data['response']);
     }
 }

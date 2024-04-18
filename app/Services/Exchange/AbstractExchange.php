@@ -3,10 +3,12 @@
 namespace App\Services\Exchange;
 
 use App\Dto\Exchange\DepositAddressDto;
+use App\Dto\Exchange\ExchangeWithdrawalsDto;
 use App\Dto\Exchange\UserPairsDto;
 use App\Enums\ExchangeAddressType;
 use App\Enums\ExchangeKeyType;
 use App\Models\ExchangeAddress;
+use App\Models\ExchangeColdWalletWithdrawal;
 use App\Models\ExchangeUserKey;
 use App\Models\ExchangeUserPairs;
 use App\Models\User;
@@ -16,13 +18,11 @@ use Illuminate\Contracts\Auth\Authenticatable;
 
 abstract class AbstractExchange
 {
-
-    protected $config;
     protected User $user;
-
     abstract public function getExchangeName();
 
     abstract public function loadDepositAddress();
+    abstract public function withdrawalFromExchange(): void;
 
     public function getKeys(ExchangeServiceEnum $exchangeServiceEnum): array
     {
@@ -45,13 +45,13 @@ abstract class AbstractExchange
     public function saveExchangeAddress(DepositAddressDto $dto, string $accessKey, ExchangeAddressType $addressType): void
     {
         ExchangeAddress::firstOrCreate([
-            'exchange_key' => $accessKey,
-            'address' => $dto->address,
-            'chain' => $dto->chain,
-            'currency' => $dto->currency,
-            'address_type' => $addressType->value,
+            'exchange_key'     => $accessKey,
+            'address'          => $dto->address,
+            'chain'            => $dto->chain,
+            'currency'         => $dto->currency,
+            'address_type'     => $addressType->value,
             'exchange_user_id' => $dto->exchangeUserId ?? null,
-            'user_id' => $this->user->id
+            'user_id'          => $this->user->id
         ]);
     }
 
@@ -59,15 +59,18 @@ abstract class AbstractExchange
     public function saveExchangeUserPairs(UserPairsDto $dto): void
     {
         ExchangeUserPairs::create([
-            'user_id' => $dto->userId,
-            'exchange_id' => $dto->exchangeId,
+            'user_id'       => $dto->userId,
+            'exchange_id'   => $dto->exchangeId,
             'currency_from' => $dto->currencyFrom,
-            'currency_to' => $dto->currencyTo,
-            'symbol' => $dto->symbol,
-            'type' => $dto->type,
+            'currency_to'   => $dto->currencyTo,
+            'symbol'        => $dto->symbol,
+            'type'          => $dto->type,
         ]);
     }
 
+    /*
+     * TODO change ExchangeId to Model from enum
+     * */
     public function deleteExchangeUserPairs(int $exchangeId): void
     {
         ExchangeUserPairs::where('user_id', $this->user->id)
@@ -80,14 +83,9 @@ abstract class AbstractExchange
         return new static(...$params);
     }
 
-    public function setConfig($config): void
-    {
-        $this->config = $config;
-    }
 
     public function setUser(User $user): void
     {
         $this->user = $user;
     }
-
 }

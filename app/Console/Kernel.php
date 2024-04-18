@@ -2,9 +2,6 @@
 
 namespace App\Console;
 
-use App\Enums\WithdrawalInterval;
-use App\Jobs\NewTransferJob;
-use App\Jobs\TransferJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -22,37 +19,21 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->everyFiveMinutes();
 
-        $schedule->command('invoice:update:status')
-            ->withoutOverlapping()
-            ->everyMinute();
 
         $schedule->command('system:status:update')
             ->withoutOverlapping()
             ->everyMinute();
 
-        $schedule->command('user:invoice:address:update')
+
+        $schedule->command('processing:resource:actualization')
             ->withoutOverlapping()
             ->everyMinute();
-
-
         /**
          * Monitoring
          */
         $schedule->command('processing:status:check')
             ->withoutOverlapping()
             ->everyFiveMinutes();
-
-        $schedule->command('explorer:status:check')
-            ->withoutOverlapping()
-            ->everyFiveMinutes();
-
-        $schedule->command('node:status:check')
-            ->withoutOverlapping()
-            ->everyFiveMinutes();
-
-        $schedule->command('node:version:control')
-            ->withoutOverlapping()
-            ->everySixHours();
 
         $schedule->command('exchange')
             ->withoutOverlapping()
@@ -74,6 +55,18 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->everyTenMinutes();
 
+        $schedule->command('unconfirmed:check')
+            ->withoutOverlapping()
+            ->everyFiveMinutes();
+
+        $schedule->command('wallet:balances:withdrawal-actualization')
+            ->withoutOverlapping()
+            ->everyFiveMinutes();
+
+        $schedule->command('cold:wallet:balance')
+            ->withoutOverlapping()
+            ->everyMinute();
+
         /*
          * Report send stats
          * */
@@ -90,14 +83,6 @@ class Kernel extends ConsoleKernel
                 ->withoutOverlapping()
                 ->monthlyOn(1, ('10:00'));
 
-        /*
-         *  Withdrawal and transfer
-         * */
-//        foreach (WithdrawalInterval::cases() as $interval) {
-//            $schedule->job(new NewTransferJob($interval))
-//                ->withoutOverlapping()
-//                ->cron($interval->value);
-//        }
     }
 
     /**

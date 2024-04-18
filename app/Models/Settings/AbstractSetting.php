@@ -2,6 +2,7 @@
 
 namespace App\Models\Settings;
 
+use App\Events\SettingUpdatedEvent;
 use App\Models\Traits\CastsToType;
 use App\Models\Traits\HasSettingsDefinitions;
 use Illuminate\Contracts\Database\Eloquent\CastsInboundAttributes;
@@ -107,4 +108,8 @@ abstract class AbstractSetting extends Model
             );
         }
     }
+    protected $dispatchesEvents = [
+        'saved' => SettingUpdatedEvent::class,
+    ];
+
 }

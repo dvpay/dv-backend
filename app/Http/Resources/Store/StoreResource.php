@@ -27,7 +27,8 @@ class StoreResource extends BaseResource
             'returnUrl'             => $this->return_url,
             'successUrl'            => $this->success_url,
             'status'                => $this->status,
-            'staticAddresses'       => $this->static_addresses
+            'staticAddresses'       => $this->static_addresses,
+            'minimalPayment'        => $this->minimal_payment,
         ];
     }
 }

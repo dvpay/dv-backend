@@ -5,11 +5,12 @@ namespace App\Console\Commands;
 use App\Enums\ExchangeService;
 use App\Enums\HeartbeatServiceName;
 use App\Enums\HeartbeatStatus;
+use App\Enums\PermissionsEnum;
 use App\Jobs\HeartbeatStatusJob;
 use App\Models\ExchangeUserPairs;
 use App\Models\Service;
 use App\Models\ServiceLogLaunch;
-use App\Services\Exchange\ExchangeManagerInterface;
+use App\Services\Exchange\ExchangeManager;
 use Illuminate\Console\Command;
 
 class ExchangeCommand extends Command
@@ -22,7 +23,7 @@ class ExchangeCommand extends Command
     protected $description = 'Command description';
 
     public function __construct(
-        private readonly ExchangeManagerInterface $exchangeManager,
+        private readonly ExchangeManager $exchangeManager,
     )
     {
         parent::__construct();
@@ -35,11 +36,17 @@ class ExchangeCommand extends Command
         $time = time();
 
         $pairs = ExchangeUserPairs::where('exchange_id',  ExchangeService::Huobi->getId())->get();
-        $exchange = ExchangeService::tryFrom('huobi');
 
         foreach ($pairs as $pair) {
-            $exchangeService = $this->exchangeManager->make($exchange, $pair->user);
+            if ($pair->user->hasPermissionTo(PermissionsEnum::ExchangeStop->value)) {
+                continue;
+            }
+            $exchangeService = $this->exchangeManager
+                ->setUser($pair->user)
+                ->driver('huobi');
+
             $result = $exchangeService->exchange($pair);
+
             HeartbeatStatusJob::dispatch(
                 service: $this->service,
                 status: HeartbeatStatus::InProgress,

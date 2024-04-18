@@ -4,8 +4,6 @@ namespace App\Http\Resources\HotWallet;
 
 use App\Helpers\CommissionCalculation;
 use App\Http\Resources\BaseResource;
-
-/** @mixin \App\Models\UserInvoiceAddress */
 class HotWalletDetailResource extends BaseResource
 {
     public function toArray($request)

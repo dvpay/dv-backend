@@ -20,7 +20,6 @@ use App\Http\Resources\Invoice\CreateInvoiceResource;
 use App\Http\Resources\Invoice\DetailInvoiceResource;
 use App\Http\Resources\Invoice\GetInvoiceResource;
 use App\Http\Resources\Invoice\ListInvoiceAddressesCollection;
-use App\Http\Resources\Invoice\ListInvoiceAddressesCollectionNew;
 use App\Http\Resources\Invoice\ListInvoicesByAddressCollection;
 use App\Http\Resources\Invoice\ListInvoicesCollection;
 use App\Models\Currency;
@@ -32,7 +31,6 @@ use App\Repositories\StoreRepository;
 use App\Services\Currency\CurrencyConversion;
 use App\Services\Invoice\InvoiceAddressCreator;
 use App\Services\Invoice\InvoiceAddressService;
-use App\Services\Invoice\InvoiceAddressServiceNew;
 use App\Services\Invoice\InvoiceCreator;
 use App\Services\Invoice\InvoiceService;
 use Exception;
@@ -51,7 +49,6 @@ class InvoiceController extends ApiController
     /**
      * @param InvoiceService $invoiceService
      * @param InvoiceAddressService $invoiceAddressService
-     * @param InvoiceAddressServiceNew $invoiceAddressServiceNew
      * @param InvoiceCreator $invoiceCreator
      * @param InvoiceAddressCreator $invoiceAddressCreator
      * @param StoreRepository $storeRepository
@@ -64,7 +61,6 @@ class InvoiceController extends ApiController
     public function __construct(
         private readonly InvoiceService           $invoiceService,
         private readonly InvoiceAddressService    $invoiceAddressService,
-        private readonly InvoiceAddressServiceNew $invoiceAddressServiceNew,
         private readonly InvoiceCreator           $invoiceCreator,
         private readonly InvoiceAddressCreator    $invoiceAddressCreator,
         private readonly StoreRepository          $storeRepository,
@@ -84,6 +80,7 @@ class InvoiceController extends ApiController
     #[OA\Post(
         path: '/invoices',
         summary: 'Create invoice',
+        security: [["apiKeyAuth" => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: [
@@ -110,10 +107,6 @@ class InvoiceController extends ApiController
 
         ),
         tags: ['Invoice'],
-        parameters: [
-            new OA\Parameter(name: 'X-Api-Key', in: 'header', required: true,
-                schema: new OA\Schema(type: 'string')),
-        ],
         responses: [
             new OA\Response(response: 200, description: "Invoice created"),
             new OA\Response(response: 400, description: "Invalid input data"),
@@ -241,17 +234,7 @@ class InvoiceController extends ApiController
         return $input;
     }
 
-    /**
-     * @throws Exception
-     */
-    public function invoiceAddress(Request $request, Invoice $invoice, Currency $currency): DefaultResponseResource
-    {
-        $address = $this->invoiceAddressCreator->getInvoiceAddress($invoice, $currency);
 
-        return (new DefaultResponseResource([
-            'address' => $address,
-        ]));
-    }
 
     /**
      * @param InvoiceAddressesListRequest $request
@@ -274,30 +257,6 @@ class InvoiceController extends ApiController
         $addresses = $this->invoiceAddressService->invoiceAddressesList($dto);
 
         return new ListInvoiceAddressesCollection($addresses);
-    }
-
-    /**
-     * @param InvoiceAddressesListRequest $request
-     * @return ListInvoiceAddressesCollectionNew
-     */
-    public function invoiceAddressListNew(InvoiceAddressesListRequest $request): ListInvoiceAddressesCollectionNew
-    {
-        $input = $request->input();
-
-        $dto = new InvoiceAddressesListDto([
-            'page'          => $input['page'] ?? 1,
-            'perPage'       => $input['perPage'] ?? 10,
-            'sortField'     => $input['sortField'] ?? 'created_at',
-            'sortDirection' => $input['sortDirection'] ?? 'asc',
-            'filterField'   => $input['filterField'] ?? null,
-            'filterValue'   => $input['filterValue'] ?? null,
-            'hideEmpty'     => $input['hideEmpty'] ?? false,
-            'user'          => $request->user(),
-        ]);
-
-        $result = $this->invoiceAddressServiceNew->invoiceAddressesList($dto);
-
-        return new ListInvoiceAddressesCollectionNew($result);
     }
 
 

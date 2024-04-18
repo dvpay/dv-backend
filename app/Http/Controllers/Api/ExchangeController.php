@@ -8,6 +8,8 @@ use App\Dto\Exchange\ColdWalletDto;
 use App\Dto\Exchange\UserPairsDto;
 use App\Dto\ExchangeKeyAddDto;
 use App\Enums\ExchangeService as ExchangeServiceEnum;
+use App\Enums\PermissionsEnum;
+use App\Exceptions\ApiException;
 use App\Exceptions\UnauthorizedException;
 use App\Http\Requests\Exchange\ExchangeAddKeysRequest;
 use App\Http\Requests\Exchange\ExchangeRequest;
@@ -16,18 +18,21 @@ use App\Http\Requests\Exchange\UserPairsRequest;
 use App\Http\Requests\Exchange\UserPairsStoreRequest;
 use App\Http\Requests\Exchange\WalletSettingsRequest;
 use App\Http\Resources\DefaultResponseResource;
+use App\Http\Resources\Exchange\ExchangeColdWalletWithdrawalCollection;
 use App\Http\Resources\Exchange\ExchangeWithdrawalWalletCollection;
 use App\Http\Resources\Exchange\UserPairsCollection;
+use App\Models\ExchangeColdWalletWithdrawal;
 use App\Models\ExchangeUserPairs;
 use App\Models\ExchangeWithdrawalWallet;
 use App\Models\Wallet;
-use App\Services\Exchange\ExchangeManagerInterface;
+use App\Services\Exchange\ExchangeManager;
 use App\Services\Exchange\ExchangeService;
 use App\Services\Withdrawal\WithdrawalSettingService;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use JetBrains\PhpStorm\Deprecated;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -40,7 +45,8 @@ class ExchangeController extends ApiController
      */
     public function __construct(
         private readonly ExchangeService          $exchangeService,
-        private readonly WithdrawalSettingService $withdrawalSettingService
+        private readonly WithdrawalSettingService $withdrawalSettingService,
+        private readonly ExchangeManager          $exchangeManager,
     )
     {
     }
@@ -85,23 +91,26 @@ class ExchangeController extends ApiController
      * @throws GuzzleException
      * @throws Throwable
      */
-    public function testConnection(Request $request)
+    public function testConnection(Request $request, Authenticatable $user)
     {
-        $user = $request->user();
-        $exchange = ExchangeServiceEnum::tryFrom($request->input('exchange'));
+        $exchangeService = $this->exchangeManager
+            ->setUser($user)
+            ->driver($request->input('exchange'));
 
-        $this->exchangeService->testConnection($user, $exchange);
+
+        if (!$exchangeService->testConnection()) {
+            throw new ApiException('Test connection - failed.', Response::HTTP_BAD_REQUEST);
+        }
 
         return new DefaultResponseResource([]);
     }
 
-    private function getService(string $exchange, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    private function getService(string $exchange, Authenticatable $user, ExchangeManager $exchangeManager)
     {
-        $exchange = ExchangeServiceEnum::tryFrom($exchange);
-        return $exchangeManager->make($exchange, $user);
+        return $exchangeManager->setUser($user)->driver($exchange);
     }
 
-    public function depositAddresses(ExchangeRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function depositAddresses(ExchangeRequest $request, Authenticatable $user, ExchangeManager $exchangeManager)
     {
         $service = $this->getService($request->input('exchange'), $user, $exchangeManager);
         $depositAddress = $service->loadDepositAddress();
@@ -109,7 +118,7 @@ class ExchangeController extends ApiController
         return new DefaultResponseResource($depositAddress);
     }
 
-    public function withdrawalAddresses(ExchangeRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function withdrawalAddresses(ExchangeRequest $request, Authenticatable $user, ExchangeManager $exchangeManager)
     {
         $service = $this->getService($request->input('exchange'), $user, $exchangeManager);
         $withdrawalAddress = $service->loadWithdrawalAddress();
@@ -117,7 +126,7 @@ class ExchangeController extends ApiController
         return new DefaultResponseResource($withdrawalAddress);
     }
 
-    public function symbols(ExchangeRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function symbols()
     {
         $symbolsByCurrency = [
             'btc'  => [
@@ -149,14 +158,14 @@ class ExchangeController extends ApiController
         return new DefaultResponseResource($symbolsByCurrency);
     }
 
-    public function symbolFromExchange(ExchangeRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function symbolFromExchange(ExchangeRequest $request, Authenticatable $user, ExchangeManager $exchangeManager)
     {
         $service = $this->getService($request->input('exchange'), $user, $exchangeManager);
         return DefaultResponseResource::make($service->loadExchangeSymbols());
     }
 
     #[Deprecated]
-    public function saveExchangeUserPairs(UserPairsStoreRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function saveExchangeUserPairs(UserPairsStoreRequest $request, Authenticatable $user, ExchangeManager $exchangeManager)
     {
         $exchange = ExchangeServiceEnum::tryFrom($request->input('exchange'));
 
@@ -174,7 +183,7 @@ class ExchangeController extends ApiController
         return DefaultResponseResource::make([]);
     }
 
-    public function saveUserPairs(UserPairsRequest $request, Authenticatable $user, ExchangeManagerInterface $exchangeManager)
+    public function saveUserPairs(UserPairsRequest $request, Authenticatable $user, ExchangeManager $exchangeManager)
     {
         $exchange = ExchangeServiceEnum::tryFrom($request->input('exchange'));
         $service = $this->getService($request->input('exchange'), $user, $exchangeManager);
@@ -264,5 +273,27 @@ class ExchangeController extends ApiController
         return DefaultResponseResource::make([]);
     }
 
+    public function withdrawalHistory(Request $request, Authenticatable $user)
+    {
+        $wallets = ExchangeWithdrawalWallet::where('user_id', $user->id)
+            ->get('id');
 
+        $withdrawal = ExchangeColdWalletWithdrawal::whereIn('exchange_cold_wallet_id', $wallets->toArray())
+            ->paginate($request->input('perPage'));
+
+        return ExchangeColdWalletWithdrawalCollection::make($withdrawal);
+    }
+
+    public function updateExchangeStatus(Request $request, Authenticatable $user)
+    {
+        $permission = PermissionsEnum::ExchangeStop;
+
+        if ($request->input('status')) {
+            $user->givePermissionTo($permission->value);
+        } else {
+            $user->revokePermissionTo($permission->value);
+        }
+
+        return new DefaultResponseResource([]);
+    }
 }

@@ -4,8 +4,8 @@ services:
         build:
             context: .docker/app
             args:
-                UID: ${UID}
-                GID: ${GID}
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
         environment:
             PHP_IDE_CONFIG: serverName=api
         restart: always
@@ -14,19 +14,25 @@ services:
             - redis
         volumes:
             - ./:/var/www/html
+            - ~/.ssh:/home/www/.ssh:ro
         command: dockerize -wait tcp://db:3306 -- bash -c "php-fpm"
         networks:
             - default
+        extra_hosts:
+            - host.docker.internal:host-gateway
 
     db:
         image: percona/percona-server:latest
         platform: linux/amd64
         restart: always
         environment:
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_DATABASE: '${DB_DATABASE:-merchant_dv}'
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-rootpassword}'
+            MYSQL_USER: '${DB_USERNAME:-merchant_dv}'
+            MYSQL_PASSWORD: '${DB_PASSWORD:-rootpassword}'
         volumes:
             - db-data:/var/lib/mysql
+            - ./.docker/mysql/conf.d/10-trust-function-creators.cnf:/etc/my.cnf.d/10-trust-function-creators.cnf:ro
         ports:
             - 13306:3306
 

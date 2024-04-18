@@ -25,10 +25,10 @@ class DiskFreeSpaceNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
                 ->replyTo($notifiable->email)
-                ->subject(__('Disk Space Left'))
-                ->greeting(__('Disk Space Left'))
+                ->subject('*' . __('Disk Space Left') . '*')
+                ->greeting('*' . __('Disk Space Left') . '*')
                 ->error()
-                ->line(__('Disk Space Message'))
+                ->line(__('The server is running out of disk space, please contact your system administrator'))
                 ->salutation(' ');
     }
 
@@ -36,8 +36,8 @@ class DiskFreeSpaceNotification extends Notification implements ShouldQueue
     {
         return TelegramMessage::create()
                 ->to($notifiable->telegram->chat_id)
-                ->line(__('Disk Space Left'))
-                ->line(__('Disk Space Message'));
+                ->line('*' . __('Disk Space Left') . '*')
+                ->line(__('The server is running out of disk space, please contact your system administrator'));
     }
 
     public function toArray($notifiable): array

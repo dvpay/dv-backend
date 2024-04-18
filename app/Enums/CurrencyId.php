@@ -40,5 +40,15 @@ enum CurrencyId: string
             self::UsdtTron
         ];
     }
+
+    public function getBlockchain()
+    {
+        return match ($this) {
+            self::BtcBitcoin => Blockchain::Bitcoin->value,
+            self::UsdtTron => Blockchain::Tron->value,
+            self::EthEthereum => Blockchain::Ethereum->value,
+            default => '',
+        };
+    }
 }
 

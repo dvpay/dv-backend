@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Jobs\TransferFromAddressJob;
+use App\Services\Currency\CurrencyConversion;
+use App\Services\Currency\CurrencyRateService;
+use App\Services\HotWallet\HotWalletServiceInterface;
+use App\Services\Invoice\InvoiceAddressCreator;
+use App\Services\Invoice\InvoiceCreator;
 use App\Services\Processing\BalanceGetter;
 use App\Services\Processing\CallbackHandlers\PaymentCallback;
 use App\Services\Processing\CallbackHandlers\TransferCallback;
-use App\Services\Processing\CallbackHandlers\TransferStatusCallback;
-use App\Services\Processing\CallbackHandlers\WatchCallback;
 use App\Services\Processing\Contracts\AddressContract;
 use App\Services\Processing\Contracts\Client as ProcessingClient;
-use App\Services\Processing\Contracts\MnemonicContract;
+use App\Services\Processing\Contracts\HeartbeatContract;
 use App\Services\Processing\Contracts\OwnerContract;
 use App\Services\Processing\Contracts\ProcessingWalletContract;
 use App\Services\Processing\Contracts\TransactionContract;
 use App\Services\Processing\Contracts\TransferContract;
 use App\Services\Processing\Fake\AddressFake;
-use App\Services\Processing\Fake\MnemonicFake;
+use App\Services\Processing\Fake\HeartbeatFake;
 use App\Services\Processing\Fake\OwnerFake;
 use App\Services\Processing\Fake\ProcessingWalletFake;
 use App\Services\Processing\Fake\TransactionFake;
@@ -48,18 +50,16 @@ class ProcessingServiceProvider extends ServiceProvider
         if (config('processing.fake')) {
             $this->app->bind(ProcessingClient::class, fn() => new FakeClient());
 
-            $this->app->bind(MnemonicContract::class, fn() => new MnemonicFake());
             $this->app->bind(AddressContract::class, fn() => new AddressFake());
             $this->app->bind(OwnerContract::class, fn() => new OwnerFake(new AddressFake()));
             $this->app->bind(TransactionContract::class, fn() => new TransactionFake());
             $this->app->bind(ProcessingWalletContract::class, fn() => new ProcessingWalletFake());
             $this->app->bind(TransferContract::class, fn() => new TransferFake());
             $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
-                watchHandler: $this->app->get(WatchCallback::class),
                 transferHandler: $this->app->get(TransferCallback::class),
                 paymentHandler: $this->app->get(PaymentCallback::class),
-                transferStatusHandler: $this->app->get(TransferStatusCallback::class)
             ));
+            $this->app->bind(HeartbeatContract::class, fn() => new HeartbeatFake());
         } else {
             $httpClient = new Client([
                 'base_uri' => config('processing.url'),
@@ -79,13 +79,11 @@ class ProcessingServiceProvider extends ServiceProvider
 
             $cb = fn() => $service;
 
-            $this->app->bind(MnemonicContract::class, $cb);
             $this->app->bind(OwnerContract::class, $cb);
             $this->app->bind(TransferContract::class, $cb);
+            $this->app->bind(HeartbeatContract::class, $cb);
             $this->app->bind(AddressContract::class, fn() => new ProcessingAddressService(
                 $this->app->get(ProcessingClient::class),
-                (int)config('processing.multipliers.tron'),
-                (int)config('processing.multipliers.bitcoin')
             ));
 
             $this->app->bind(TransactionContract::class, fn() => new ProcessingTransactionService(
@@ -102,19 +100,19 @@ class ProcessingServiceProvider extends ServiceProvider
             new Client(['base_uri' => config('processing.btc_explorer')]),
         ));
 
-        $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
-            watchHandler: $this->app->get(WatchCallback::class),
-            transferHandler: $this->app->get(TransferCallback::class),
-            paymentHandler: $this->app->get(PaymentCallback::class),
-            transferStatusHandler: $this->app->get(TransferStatusCallback::class)
+        $this->app->bind(PaymentCallback::class, fn() => new PaymentCallback(
+            currencyConversion: $this->app->get(CurrencyConversion::class),
+            currencyRateService: $this->app->get(CurrencyRateService::class),
+            invoiceCreator: $this->app->get(InvoiceCreator::class),
+            invoiceAddressCreator: $this->app->get(InvoiceAddressCreator::class),
+            minTransactionConfirmations: config('processing.min_transaction_confirmations'),
+            hotWalletService: $this->app->get(HotWalletServiceInterface::class)
         ));
 
+        $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
+            transferHandler: $this->app->get(TransferCallback::class),
+            paymentHandler: $this->app->get(PaymentCallback::class),
+        ));
 
-        $this->app->bindMethod([TransferFromAddressJob::class, 'handle'], function ($job, $app) {
-            return $job->handle(
-                $app->make(TransferContract::class),
-                $app->make(TransferService::class)
-            );
-        });
     }
 }

@@ -10,6 +10,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\ProcessingCallbackType;
 use App\Enums\TransferStatus;
 use App\Http\Requests\Processing\ProcessingCallbackRequest;
+use App\Http\Requests\Processing\ProcessingTransferTypeRequest;
 use App\Http\Requests\Processing\TransferRequest;
 use App\Http\Resources\DefaultResponseResource;
 use App\Http\Resources\Processing\ProcessingWalletCollection;
@@ -26,6 +27,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use OpenApi\Attributes as OA;
 
 /**
  * ProcessingController
@@ -72,6 +74,18 @@ class ProcessingController extends ApiController
      * @param Request $request
      * @return ProcessingWalletCollection
      */
+    #[OA\Get(
+        path: '/stores/processing/wallets',
+        summary: 'Get processing wallets',
+        security: [["bearerAuth" => []]],
+        tags: ['Processing'],
+        responses: [
+            new OA\Response(response: 200, description: "Get static address", content: new OA\JsonContent(
+                example: '{"result":[{"blockchain":"tron","address":"nQl6jcneD49hgLOQiBliKQ1ZlgelMnSRyhgtTMHJ","balance":"0.5","minBalance":"10.00000000","energyLimit":"4741639","energy":"78347","bandwidthLimit":"2504313","bandwidth":"7191768","transferType":"delegate","transferTypeList":["delegate","regular"]},{"blockchain":"bitcoin","address":"6XwBAkzyISK2vwpbiLmAeQ3F527uwUmrvLerGyZV","balance":"0.5","minBalance":"0.00030000","energyLimit":"2151293","energy":"9314641","bandwidthLimit":"8420492","bandwidth":"9072419","transferType":"delegate","transferTypeList":["delegate","regular"]},{"blockchain":"ethereum","address":"s1LxynL6xVOKjFkEDSVLEHyuV5vHb1qgz5a4XLwI","balance":"0.5","minBalance":"10.00000000","energyLimit":"4857592","energy":"3095146","bandwidthLimit":"7094485","bandwidth":"436986","transferType":"delegate","transferTypeList":["delegate","regular"]}],"errors":[]}',
+            )),
+        ],
+
+    )]
     public function getProcessingWallets(Request $request): ProcessingWalletCollection
     {
         $user = $request->user();
@@ -81,13 +95,28 @@ class ProcessingController extends ApiController
         return new ProcessingWalletCollection($result);
     }
 
+    public function updateProcessingTransferType(ProcessingTransferTypeRequest $request, Authenticatable $user)
+    {
+        $result = $this->processingWalletContract->switchType(
+            ownerId: $user->processing_owner_id,
+            blockchain: $request->input('blockchain'),
+            type: $request->input('type')
+        );
+
+        return new DefaultResponseResource([]);
+    }
+
     /**
      * @throws \Throwable
      */
     public function transferCallback(TransferRequest $request, TransferService $transferService)
     {
         ProcessingCallback::create(['request' => json_encode($request->all())]);
-        $transferService->updateStatus($request->input('uuid'), TransferStatus::tryFrom($request->input('status')));
+        $transferService->updateStatus(
+            $request->input('uuid'),
+            TransferStatus::tryFrom($request->input('status')),
+            $request->input('error')
+        );
 
         return (new DefaultResponseResource([]))
             ->response()

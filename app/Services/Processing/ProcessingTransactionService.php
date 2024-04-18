@@ -23,7 +23,12 @@ final readonly class ProcessingTransactionService implements TransactionContract
 
     public function info(string $txId): ProcessingTransactionInfoDto
     {
-        $response = $this->client->request(HttpMethod::GET, "/transactions/$txId", []);
+        $response = $this->client->request(
+            method: HttpMethod::GET,
+            uri: "/transactions/$txId",
+            data: [],
+            statsUri: '/transactions/{txId}'
+        );
         $data = json_decode((string)$response->getBody(), true);
 
         if ($response->getStatusCode() != Response::HTTP_OK) {
@@ -35,28 +40,14 @@ final readonly class ProcessingTransactionService implements TransactionContract
         return new ProcessingTransactionInfoDto($data);
     }
 
-    public function attachTransactionToInvoice(string $txId, string $watchId, string $ownerId): void
-    {
-        $response = $this->client->request(HttpMethod::POST, "/owners/$ownerId/transactions/$txId/watches/$watchId", []);
-
-	    Log::channel('supportLog')->info('Attach transaction to invoice processing response', [$response->getBody()]);
-
-        if ($response->getStatusCode() == Response::HTTP_BAD_REQUEST) {
-            throw new ProcessingException(__('Transaction can not be set.'), $response);
-        }
-
-        if ($response->getStatusCode() == Response::HTTP_CONFLICT) {
-            throw new ProcessingException(__('Transaction has invoice.'), $response);
-        }
-
-        if ($response->getStatusCode() != Response::HTTP_OK) {
-            throw new ProcessingException(__('Transaction not set.'), $response);
-        }
-    }
-
     public function getTransactionByAddress(string $ownerId, string $address): array
     {
-        $response = $this->client->request(HttpMethod::GET, "/owners/$ownerId/addresses/$address/transactions", []);
+        $response = $this->client->request(
+            method: HttpMethod::GET,
+            uri: "/owners/$ownerId/addresses/$address/transactions",
+            data: [],
+            statsUri: '/owners/{ownerId}/addresses/{address}/transactions'
+        );
         $data = json_decode((string)$response->getBody(), true);
 
         if ($response->getStatusCode() != Response::HTTP_OK) {

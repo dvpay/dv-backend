@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Dto\Models\StoreDto;
 use App\Dto\Models\UserDto;
+use App\Enums\RootSetting;
 use App\Enums\UserTokenType;
 use App\Exceptions\ApiException;
 use App\Facades\Settings;
@@ -34,6 +35,7 @@ use PragmaRX\Google2FA\Exceptions\InvalidCharactersException;
 use PragmaRX\Google2FA\Exceptions\SecretKeyTooShortException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 /**
  * UserController
@@ -62,7 +64,7 @@ class UserController extends ApiController
      */
     public function register(RegisterRequest $request): DefaultResponseResource
     {
-        if (!Settings::get('registration_enable')) {
+        if (!Settings::get(RootSetting::RegistrationEnable->value)) {
             throw new ApiException(__('Registration Disabled'), 400);
         }
 
@@ -77,6 +79,42 @@ class UserController extends ApiController
      * @param LoginRequest $request
      * @return TokenResource
      */
+    #[OA\Post(
+        path: '/auth/login',
+        summary: 'Login',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: [
+                new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: "email",
+                            description: "Email",
+                            type: "string",
+                            example: "admin@admin.com",
+                        ),
+                        new OA\Property(
+                            property: "password",
+                            description: "Password",
+                            type: "string",
+                            example: "password",
+                        ),
+                    ],
+                    type: "object"
+                )
+            ]
+        ),
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(response: 200, description: "Token", content: new OA\JsonContent(
+                example: '{"result": {"token": "1|Qn9aXFAqaSUKeNW3oSSL8xSkLZsxe7mg3QU1H80Q"},"errors": []}'
+            )),
+            new OA\Response(response: 422, description: "Invalid input data", content: new OA\JsonContent(
+                example: '{"message": "Password is empty!","errors": {"password": ["Password is empty!"]}}'
+            )),
+
+        ]
+    )]
     public function login(LoginRequest $request): TokenResource
     {
         $input = $request->validated();
@@ -128,6 +166,21 @@ class UserController extends ApiController
      * @param Request $request
      * @return DefaultResponseResource
      */
+    #[OA\Get(
+        path: "/users/user",
+        summary: "Get current user detail info",
+        security: [["bearerAuth" => []]],
+        tags: ['User'],
+        responses: [
+            new OA\Response(response: 200, description: "Get current user detail info", content: new OA\JsonContent(
+                example: '{"result":{"email":"admin@admin.com","roles":["root","admin"],"permissions":[],"telegramNotification":"disabled","location":null,"language":"en","phone":null,"isEmailVerified":true,"google2faSecret":null,"google2faUrl":null,"google2faStatus":false,"permission":{"withdrawal":false,"storePay":false}},"errors":[]}',
+            )),
+            new OA\Response(response: 401, description: "Unauthorized",content: new OA\JsonContent(
+                example: '{"errors":["Unauthenticated."],"result":[]}'
+            )),
+        ],
+
+    )]
     public function detail(Request $request): DefaultResponseResource
     {
         $user = $request->user();

@@ -9,10 +9,18 @@ class PayerAddressResource extends BaseResource
 {
     public function toArray(Request $request): array
     {
+        $address = !$this->payer->store->status
+            ? __('The store has suspended accepting payments, contact the owner to enable it')
+            : $this->address;
+
+        $address = !$this->payer->store->static_addresses
+            ? __('Static address generation is disabled in store settings')
+            : $address;
+
         return [
             'blockchain'   => $this->blockchain,
             'currency'     => $this->currency_id,
-            'address'      => $this->address,
+            'address'      => $address,
             'rate'         => $this->rate ?? null,
             'payer'        => [
                 'id'          => $this->payer->id,
@@ -22,6 +30,7 @@ class PayerAddressResource extends BaseResource
                 'payerUrl'    => config('setting.payment_form_url') . '/payer/' . $this->payer->id,
             ],
             'transactions' => $this->transactions,
+            'unconfirmedTransactions' => $this->unconfirmed_transactions,
         ];
     }
 }

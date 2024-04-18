@@ -5,9 +5,11 @@ namespace App\Services\WithdrawalWallet;
 
 use App\Dto\Transfer\TransferDto;
 use App\Enums\Blockchain;
+use App\Enums\CurrencyId;
 use App\Enums\CurrencySymbol;
 use App\Enums\RateSource;
 use App\Enums\TransactionType;
+use App\Enums\TransferKind;
 use App\Enums\TransferStatus;
 use App\Models\Currency;
 use App\Models\HotWallet;
@@ -18,10 +20,12 @@ use App\Models\WithdrawalWallet;
 use App\Services\Currency\CurrencyRateService;
 use App\Services\Processing\BalanceGetter;
 use App\Services\Processing\Contracts\ProcessingWalletContract;
+use App\Services\Processing\Contracts\TransferContract;
 use App\Services\Processing\TransferService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * WithdrawalWalletService
@@ -33,6 +37,8 @@ final readonly class WithdrawalWalletService
      */
     public const TRON_ENERGY_TRANSFER = 64000;
 
+    public const USDT_TRC20_MIN_BALANCE = 0.5;
+
     /**
      * @param BalanceGetter $balanceGetter
      * @param CurrencyRateService $currencyService
@@ -43,7 +49,8 @@ final readonly class WithdrawalWalletService
         private BalanceGetter            $balanceGetter,
         private CurrencyRateService      $currencyService,
         private ProcessingWalletContract $processingWalletService,
-        private TransferService          $transferService
+        private TransferService          $transferService,
+        private TransferContract $transferProcessingContract
     )
     {
     }
@@ -122,17 +129,98 @@ final readonly class WithdrawalWalletService
         }
         Log::error('Sending a withdrawal request', ['ownerId' => $user->processing_owner_id, 'walletBlockchain' => $withdrawalWallet->blockchain->value, 'address_from' => $address, 'address_to' => $addressForWithdrawal]);
 
+        $addressWallet = HotWallet::where('address', $address)->first();
+
         $dto = new TransferDto([
             'uuid'        => Str::uuid(),
             'user'        => $user,
+            'kind'        => TransferKind::TransferFromAddress,
             'currency'    => $currency,
             'status'      => TransferStatus::Waiting,
             'addressFrom' => $address,
             'addressTo'   => $addressForWithdrawal,
-            'contract'    => $currency->contract_address
+            'contract'    => $currency->contract_address,
+            'amount'      => $addressWallet->amount,
+            'amountUsd'   => $addressWallet->amount_usd,
         ]);
 
+        $this->transferProcessingContract->transferFromAddress($dto);
+
         $this->transferService->createTransfer($dto);
+    }
+
+    /**
+     * @param Authenticatable|User $user
+     * @param CurrencyId $currencyId
+     * @param string $addressTo
+     * @param string $amount
+     *
+     * @return void
+     */
+
+    public function withdrawalFromProcessingWallet(
+        Authenticatable|User $user,
+        CurrencyId $currencyId,
+        string $addressTo,
+        string $amount,
+    ): void
+    {
+        $currency = Currency::where([
+            ['id', $currencyId->value],
+            ['has_balance', true],
+        ])->firstOrFail();
+
+        if (!preg_match($currency->blockchain->getAddressValidationRegex(), $addressTo)) {
+            throw new UnprocessableEntityHttpException('Destination address is not walid for blockchain ' . $currency->blockchain->value);
+        }
+
+
+        $processingWallets = collect($this->processingWalletService->getWallets($user->processing_owner_id));
+
+        $processingWallet = $processingWallets->firstWhere('blockchain','=',$currencyId->getBlockchain());
+
+        $amountUsd = bcmul($amount, $this->getRate($currency));
+#TODO: We can cot check amount while processing do not send us not native balances (Merchant-1295)
+//        $processingWalletBalanceUsd = bcmul($processingWallet->balance,$this->getRate($currency));
+//
+//        if($processingWalletBalanceUsd - $amountUsd < self::USDT_TRC20_MIN_BALANCE) {
+//            Log::error('Processing wallet after withdrawal is less, then min balance', [
+//                'ownerId'          => $user->processing_owner_id,
+//                'walletBlockchain' => $currency->id,
+//                'address_from'     => $processingWallet->address,
+//                'address_to'       => $addressTo,
+//                'amount_usd'       => $amountUsd,
+//                'balance_usd'      => $processingWalletBalanceUsd,
+//                'min_balance'      => self::USDT_TRC20_MIN_BALANCE,
+//            ]);
+//        }
+
+        Log::error('Sending a withdrawal from processing request', [
+            'ownerId' => $user->processing_owner_id,
+            'walletBlockchain' => $currency->id,
+            'address_from' => $processingWallet->address,
+            'address_to' => $addressTo,
+        ]);
+
+        $dto = new TransferDto(
+            [
+                'uuid'        => Str::uuid(),
+                'user'        => $user,
+                'kind'        => TransferKind::TransferFromProcessing,
+                'currency'    => $currency,
+                'status'      => TransferStatus::Waiting,
+                'addressFrom' => $processingWallet->address,
+                'addressTo'   => $addressTo,
+                'contract'    => $currency->contract_address,
+                'amount'      => $amount,
+                'amountUsd'   => $amountUsd,
+            ]
+        );
+
+        $this->transferProcessingContract->transferFromProcessing($dto);
+
+        $this->transferService->createTransfer($dto);
+
     }
 
     /**
@@ -189,7 +277,9 @@ final readonly class WithdrawalWalletService
                 'status'      => TransferStatus::Waiting,
                 'addressFrom' => $address['address'],
                 'addressTo'   => $addressForWithdrawal,
-                'contract'    => $currency->contract_address
+                'contract'    => $currency->contract_address,
+                'amount'      => $address["amount"],
+                'amountUsd'   => $address["amount_usd"],
             ]);
 
             $this->transferService->createTransfer($dto);
@@ -243,7 +333,18 @@ final readonly class WithdrawalWalletService
 
         $activeTransfer = Transfer::where('status', TransferStatus::Sending)
             ->where('user_id', $withdrawalWallet->user_id)
+            ->where('kind', TransferKind::TransferFromAddress)
             ->where('currency_id', $currency->id)
+            ->get()
+            ->pluck('address_from')
+            ->toArray();
+
+        $failedTransfer = Transfer::where('status', TransferStatus::Failed)
+            ->where('user_id', $withdrawalWallet->user_id)
+            ->where('kind', TransferKind::TransferFromAddress)
+            ->where('currency_id', $currency->id)
+            ->where('created_at', '>', now()->subMinutes(60))
+            ->whereNotNull('message')
             ->get()
             ->pluck('address_from')
             ->toArray();
@@ -251,7 +352,9 @@ final readonly class WithdrawalWalletService
         $address = HotWallet::where('user_id', $withdrawalWallet->user_id)
             ->where('blockchain', $withdrawalWallet->blockchain)
             ->where('amount_usd', '>=', $withdrawalWallet->withdrawal_min_balance)
+            ->where('amount', '>=', $currency->withdrawal_min_balance)
             ->whereNotIn('address', $activeTransfer)
+            ->whereNotIn('address', $failedTransfer)
             ->orderBy('amount_usd', 'desc')
             ->first();
 
@@ -262,9 +365,10 @@ final readonly class WithdrawalWalletService
         /* hack for stop transfer if processing return error callback  */
         $failedTransfer = Transfer::where('status', TransferStatus::Failed)
             ->where('user_id', $withdrawalWallet->user_id)
+            ->where('kind', TransferKind::TransferFromAddress)
             ->where('address_from', $address->address)
             ->where('currency_id', $currency->id)
-            ->where('created_at', '>=', now()->subMinutes(1))
+            ->where('created_at', '>=', now()->subMinutes(60))
             ->first();
 
         if (!empty($failedTransfer)) {
@@ -285,6 +389,7 @@ final readonly class WithdrawalWalletService
         return new TransferDto([
             'uuid'        => Str::uuid(),
             'user'        => $withdrawalWallet->user,
+            'kind'        => TransferKind::TransferFromAddress,
             'currency'    => $currency,
             'status'      => TransferStatus::Sending,
             'addressFrom' => $address['address'],

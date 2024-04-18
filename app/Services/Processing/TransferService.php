@@ -20,6 +20,7 @@ class TransferService
         return Transfer::create([
             'uuid'         => $dto->uuid,
             'user_id'      => $dto->user->id,
+            'kind'         => $dto->kind,
             'currency_id'  => $dto->currency->id,
             'status'       => $dto->status,
             'address_from' => $dto->addressFrom,
@@ -32,16 +33,20 @@ class TransferService
     /**
      * @throws \Throwable
      */
-    public function updateStatus(string $identification, TransferStatus $status)
+    public function updateStatus(string $identification, TransferStatus $status, ?string $message)
     {
         return Transfer::where('uuid', $identification)
-            ->update(['status' => $status->value]);
+            ->update([
+                'status'  => $status->value,
+                'message' => $message],
+            );
     }
 
     /**
      * @param int $minute
      * @return void
      */
+    #TODO: Check this method after adding new kind of transfers TransferKind::TransferFromProcessing
     public function expiredTransfer(int $minute): void
     {
         $date = now()->subMinutes($minute);
@@ -54,6 +59,7 @@ class TransferService
      * @param int $day
      * @return void
      */
+    #TODO: Check this method after adding new kind of transfers TransferKind::TransferFromProcessing
     public function deleteOldTransfer(int $day): void
     {
         $date = now()->subDays($day);
@@ -64,6 +70,7 @@ class TransferService
     /**
      * @return int
      */
+    #TODO: Check this method after adding new kind of transfers TransferKind::TransferFromProcessing
     public function getTransferInWorkCount(): int
     {
         return Transfer::where('status', TransferStatus::Waiting->value)->count();
@@ -73,6 +80,7 @@ class TransferService
      * @param User $user
      * @return int
      */
+    #TODO: Check this method after adding new kind of transfers TransferKind::TransferFromProcessing
     public function getTransferInWorkCountByUser(User $user): int
     {
         return Transfer::where('user_id', $user->id)

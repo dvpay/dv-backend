@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', 'daily'),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,7 +67,7 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
+            'days' => 7,
         ],
 
         'slack' => [
@@ -125,23 +125,31 @@ return [
         ],
 
         'tgLog' => [
-            'driver' => 'single',
+            'driver' => 'daily',
             'path' => storage_path('logs/telegram.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
         ],
 
         'exchangeLog' => [
-            'driver' => 'single',
+            'driver' => 'daily',
             'path' => storage_path('logs/exchange.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
         ],
 
         'supportLog' => [
-	        'driver' => 'single',
+	        'driver' => 'daily',
 	        'path' => storage_path('logs/support.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
         ],
 
         'processingLog' => [
-            'driver' => 'single',
+            'driver' => 'daily',
             'path' => storage_path('logs/processing.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
         ],
     ],
 

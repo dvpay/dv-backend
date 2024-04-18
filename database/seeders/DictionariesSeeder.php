@@ -36,7 +36,8 @@ class DictionariesSeeder extends Seeder
             'contract_address' => '',
             'precision' => 8,
             'is_fiat' => false,
-            'withdrawal_min_balance' => 0.01,
+            'withdrawal_min_balance' => 0.00030000,
+            'sort_order' => 2
         ],
         [
             'id' => 'USDT.Tron',
@@ -47,7 +48,8 @@ class DictionariesSeeder extends Seeder
             'chain' => 'trc20usdt',
             'precision' => 2,
             'is_fiat' => false,
-            'withdrawal_min_balance' => 10,
+            'withdrawal_min_balance' => 0.5,
+            'sort_order' => 1
         ],
         [
             'id' => 'USDT.ETH',
@@ -72,6 +74,7 @@ class DictionariesSeeder extends Seeder
             'is_fiat' => false,
             'withdrawal_min_balance' => 10,
             'has_balance' => false,
+            'sort_order' => 3
         ],
         [
             'id' => 'ETH.Ethereum',

@@ -70,6 +70,7 @@ class SettingsContainer
      * @param Model $scopeModel
      * @return void
      * @throws \ReflectionException
+     * @throws \Exception
      */
     protected function checkMethods(Model $scopeModel): void
     {
@@ -123,7 +124,7 @@ class SettingsContainer
     protected function appendDefaults(Collection $collection): Collection
     {
         foreach ($this->getDefaults() as $default) {
-            if ($collection->where('name', $default->name)->first()) {
+            if ($collection->firstWhere('name', $default->name)) {
                 continue;
             }
 
@@ -225,8 +226,7 @@ class SettingsContainer
             $this->all();
 
             return $this->cachedSettings
-                ->where('name', $name)
-                ->first();
+                ->firstWhere('name', $name);
         }
 
         if ($this->isScoped) {

@@ -181,6 +181,7 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
+        \App\Providers\Cache\CacheServiceProvider::class,
 
         /*
          * Package Service Providers...
@@ -199,7 +200,10 @@ return [
         App\Providers\WebhookServiceProvider::class,
         App\Providers\ReportServiceProvider::class,
         App\Providers\SettingsServiceProvider::class,
-        App\Providers\ExchangeServiceProvider::class
+        App\Providers\ExchangeServiceProvider::class,
+        App\Providers\HuobiExchangeClientServiceProvider::class,
+        App\Providers\PrometheusServiceProvider::class,
+        App\Providers\EventMetricsServiceProvider::class,
     ],
 
     /*
@@ -223,5 +227,5 @@ return [
 
     'app_domain' => env('APP_DOMAIN', 'localhost:8080'),
 
-    'version' =>  env('APP_VERSION', '1.0-20230915'),
+    'version' =>  env('APP_VERSION', '1.0.0'),
 ];

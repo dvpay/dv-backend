@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use App\Models\Notification\NotificationLog;
 use App\Models\PayerAddress;
 use Illuminate\Bus\Queueable;
@@ -22,7 +23,7 @@ class PayerAddressNotification extends Notification implements ShouldQueue
         protected readonly ?string $ip = ''
     )
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -35,12 +36,12 @@ class PayerAddressNotification extends Notification implements ShouldQueue
         $id = '';
 
         $mail = (new MailMessage)
-            ->subject(__('You Addresses'))
-            ->greeting(__('You Addresses'));
+            ->subject(__('Your addresses'))
+            ->greeting(__('Your addresses'));
 
         foreach ($this->payerAddresses as $payerAddress) {
             $id .= substr(md5($payerAddress->address), 1, 6);
-            $mail->line('Your top-up address on network: ' . $payerAddress->blockchain->name)
+            $mail->line('Your top-up address in network: ' . $payerAddress->blockchain->name)
                 ->line('Address: ' . $payerAddress->address);
         }
 
@@ -50,11 +51,11 @@ class PayerAddressNotification extends Notification implements ShouldQueue
             $mail->line('Wallet address requested from IP: ' . $this->ip);
         }
 
-        $mail->line('We kindly ask you to pay attention to the coincidence of characters when entering the wallet when transferring. If the wallet is entered incorrectly at the time of payment, no refund will be made.')
+        $mail->line('We kindly ask you be carefully when sending money and check the addresses before transferring. If the wallet is entered incorrectly at the time of payment, no refund will be made.')
             ->line('')
-            ->line('If the address on the site and in the email are different, then contact support')
-            ->line('Do not delete this letter, in case of problems it is necessary for investigation.')
-            ->line('Thank you for using our application!');
+            ->line('If the addresses on the site and in the email are different, contact support immediately.')
+            ->line('Do not delete this letter, it will be necessary for the investigation in case of any problems.')
+            ->line('Thank you for using our service!');
 
         NotificationLog::create([
             'email'          => $notifiable->routes['mail'],

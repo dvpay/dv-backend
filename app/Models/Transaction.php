@@ -7,12 +7,13 @@ namespace App\Models;
 use App\Enums\TransactionType;
 use App\Events\TransactionCreatedEvent;
 use App\Models\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
-    use HasUuid;
+    use HasUuid, HasFactory;
 
     public $incrementing = false;
 
@@ -38,6 +39,8 @@ class Transaction extends Model
         'network_created_at',
         'energy',
         'bandwidth',
+        'payer_id',
+        'created_at_index',
     ];
 
     protected $dispatchesEvents = [
@@ -66,4 +69,15 @@ class Transaction extends Model
                 $query->where('from_address', $this->to_address);
             });
     }
+
+    public function payer(): HasOne
+    {
+        return $this->hasOne(Payer::class,'id', 'payer_id');
+    }
+
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class, 'id', 'store_id');
+    }
+
 }

@@ -225,16 +225,16 @@ readonly class ReportService
     {
         $dateStart = now()->subMonth()->format('Y-m-d');
         $result = Transaction::selectRaw('count(*) as count, AVG(bandwidth) as avg_bandwidth, AVG(energy) as avg_energy')
-            ->where('type', TransactionType::Transfer)
+            ->where('type', TransactionType::Invoice)
             ->where('user_id', $user->id)
             ->where('currency_id', $currency->id)
             ->whereDate('created_at', '>=', $dateStart)
             ->first();
 
         return [
-            'avgTransfer'  => round($result->count / 30),
-            'avgBandwidth' => $result->avg_bandwidth,
-            'avgEnergy'    => $result->avg_energy,
+            'avgTransaction'  => round($result->count / 30),
+            'avgBandwidth'    => $result->avg_bandwidth,
+            'avgEnergy'       => $result->avg_energy,
         ];
     }
 }

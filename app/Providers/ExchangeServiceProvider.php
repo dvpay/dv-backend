@@ -10,7 +10,7 @@ class ExchangeServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(ExchangeManagerInterface::class, fn($app) => new ExchangeManager($app));
+        $this->app->bind(ExchangeManager::class, fn($app) => new ExchangeManager($app));
     }
 
     public function boot(): void

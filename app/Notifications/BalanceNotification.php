@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\Blockchain;
+use App\Enums\Queue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -21,7 +22,7 @@ class BalanceNotification extends Notification implements ShouldQueue
      */
     public function __construct(private readonly object $data,
     ) {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     /**
@@ -41,17 +42,17 @@ class BalanceNotification extends Notification implements ShouldQueue
     {
         $telegramMessage = TelegramMessage::create()
                 ->to($notifiable->chat_id)
-                ->line(__('Merchant. Current balances'))
-                ->line(__('Received today') . ' ' . $this->data->todaySum . ' (' . __('Yesterday') . $this->data->yesterdaySum . ')')
+                ->line('*' . __('Merchant. Current balances') . '*')
+                ->line(__('Received today') . ': ' . $this->data->todaySum . ' (' . __('Yesterday') . ' - '. $this->data->yesterdaySum . ')')
                 ->line(__('Number of payments') . ' ' . $this->data->invoiceCount  . ' (' .$this->data->transactionCount . ' ' . __('PaymentsCount') .')')
                 ->line(__('Hot wallet balance') . $this->data->balanceHotWallet->sum('balanceUsd'))
-                ->line(__('Processing wallets'));
+                ->line(__('Processing wallets'). ': ');
 
         foreach ($this->data->processingWallets as $processingWallet) {
             $telegramMessage->line($processingWallet->balance . ' ' . Blockchain::tryFrom($processingWallet->blockchain)->getNativeToken()->value . $processingWallet->blockchain . ' ' . $processingWallet->address);
         }
 
-        $telegramMessage->line(__('Hot wallet balance'));
+        $telegramMessage->line(__('Hot wallet balance') . ': ');
 
         foreach ($this->data->balanceHotWallet as  $hotWallet) {
             $telegramMessage->line($hotWallet['balanceUsd'] . '$ ' . $hotWallet['balance'] . '-' . explode('.' , $hotWallet['currency'])[0] . ' (' . $hotWallet['addressCount']['total'] . ')');

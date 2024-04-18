@@ -17,7 +17,6 @@ class InvoiceAddress extends Model
         'invoice_id',
         'address',
         'blockchain',
-        'watch_id',
         'currency_id',
         'balance',
         'rate',

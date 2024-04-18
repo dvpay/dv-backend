@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Dto\Models\StoreDto;
+use App\Enums\CurrencyId;
 use App\Enums\CurrencySymbol;
+use App\Enums\PermissionsEnum;
 use App\Enums\RateSource;
 use App\Exceptions\ApiException;
 use App\Exceptions\UnauthorizedException;
@@ -15,6 +17,7 @@ use App\Http\Requests\Store\GetCurrencyRateRequest;
 use App\Http\Requests\Store\UpdateRateSourceRequest;
 use App\Http\Requests\Store\UpdateStoreRequest;
 use App\Http\Requests\Store\UpdateUrlsRequest;
+use App\Http\Requests\Withdrawal\WithdrawalWalletWithdrawFromProcessingRequest;
 use App\Http\Resources\DefaultResponseResource;
 use App\Http\Resources\Store\ListStoreCollection;
 use App\Http\Resources\Store\StoreResource;
@@ -27,12 +30,14 @@ use App\Services\Currency\CurrencyRateService;
 use App\Services\Processing\BalanceGetter;
 use App\Services\Store\StoreService;
 use App\Services\Withdrawal\UnconfirmedWithdrawals;
+use App\Services\WithdrawalWallet\WithdrawalWalletService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use JetBrains\PhpStorm\Pure;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 /**
  * StoreController
@@ -44,14 +49,16 @@ class StoreController extends ApiController
      * @param CurrencyRateService $currencyService
      * @param CurrencyConversion $currencyConversion
      * @param CurrencyRepository $currencyRepository
+     * @param WithdrawalWalletService $withdrawalWalletService
      * @param string $invoiceLifetime
      */
     public function __construct(
-        private readonly StoreService        $storeService,
-        private readonly CurrencyRateService $currencyService,
-        private readonly CurrencyConversion  $currencyConversion,
-        private readonly CurrencyRepository  $currencyRepository,
-        private readonly string              $invoiceLifetime
+        private readonly StoreService            $storeService,
+        private readonly CurrencyRateService     $currencyService,
+        private readonly CurrencyConversion      $currencyConversion,
+        private readonly CurrencyRepository      $currencyRepository,
+        private readonly WithdrawalWalletService $withdrawalWalletService,
+        private readonly string                  $invoiceLifetime,
     )
     {
         $this->authorizeResource(Store::class, 'store');
@@ -87,7 +94,8 @@ class StoreController extends ApiController
             'userId'                => $request->user()->id,
             'invoiceExpirationTime' => $this->invoiceLifetime,
             'addressHoldTime'       => config('setting.store_address_hold_time'),
-            'status'                => true
+            'status'                => true,
+            'staticAddresses'       => true,
         ]);
 
         $store = $this->storeService->create($dto);
@@ -100,6 +108,21 @@ class StoreController extends ApiController
      *
      * @return ListStoreCollection
      */
+    #[OA\Get(
+        path: '/stores',
+        summary: 'Get user stores list',
+        security: [["bearerAuth" => []]],
+        tags: ['Store'],
+        responses: [
+            new OA\Response(response: 200, description: "Get user stores list", content: new OA\JsonContent(
+                example: '{"result":[{"id":"040e9dcf-40e5-4408-a395-7de1661a60d3","name":"MissKaelaBaumbach","createdAt":"2024-01-31T11:08:48+00:00","invoicesCount":0},{"id":"06053f59-562a-416c-9db4-902ec26ba228","name":"ConnerNolan","createdAt":"2024-01-31T13:20:28+00:00","invoicesCount":0}],"errors":[]}',
+            )),
+            new OA\Response(response: 401, description: "Unauthorized", content: new OA\JsonContent(
+                example: '{"errors":["You don\'t have permission to this action!"],"result":[]}'
+            )),
+        ],
+
+    )]
     public function list(Request $request): ListStoreCollection
     {
         $user = $request->user();
@@ -131,6 +154,7 @@ class StoreController extends ApiController
             'addressHoldTime'       => $request->input('addressHoldTime'),
             'status'                => $request->input('status'),
             'staticAddresses'       => $request->input('staticAddresses'),
+            'minimalPayment'        => $request->input('minimalPayment'),
         ]);
 
         $store = $this->storeService->update($dto, $store);
@@ -236,6 +260,65 @@ class StoreController extends ApiController
         }
 
         return new UnconfirmedWithdrawalsResource(app(UnconfirmedWithdrawals::class)->get($store->id));
+    }
+
+
+    #[OA\Post(
+        path: '/withdrawals/withdrawal-from-processing-wallet',
+        summary: 'Withdraw From Processing Wallet',
+        security: [["apiKeyAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: [
+                new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "currencyId",
+                            description: "Currency Id",
+                            type: "string",
+                            example: "USDT.Tron"
+                        ),
+                        new OA\Property(property: "addressTo",
+                            description: "Address To Withdrawal",
+                            type: "string",
+                            example: "TBQhpoxrutttqgnrgDSvmcsGBb4Ac1oJDc"
+                        ),
+                        new OA\Property(property: "amount",
+                            description: "Amount To Withdrawal",
+                            type: "string",
+                            example: "1"
+                        ),
+                    ],
+                    type: "object"
+                )
+            ]
+        ),
+        tags: ['Withdrawal Wallet'],
+        responses: [
+            new OA\Response(response: 200, description: "Withdrawal Has Been Sent", content: new OA\JsonContent(
+                example: '{"result":[],"errors":[]}'
+            )),
+            new OA\Response(response: 401, description: "Unauthorized", content: new OA\JsonContent(
+                example: '{"errors":["You don\'t have permission to this action!"],"result":[]}'
+            )),
+        ]
+    )]
+    public function withdrawalFromProcessingWallet(WithdrawalWalletWithdrawFromProcessingRequest $request)
+    {
+        $store = app(StoreRepository::class)->getStoreByApiKey($request->header('X-Api-Key'));
+
+        #TODO: Permissions seems to be useless
+        if ($store->user->hasPermissionTo(PermissionsEnum::TransfersFunds->value)) {
+            throw new ApiException(__('Transfer disabled '), Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->withdrawalWalletService->withdrawalFromProcessingWallet(
+            user: $store->user,
+            currencyId: CurrencyId::from($request->input('currencyId')),
+            addressTo: $request->input('addressTo'),
+            amount: $request->input('amount'),
+        );
+
+        return DefaultResponseResource::make([]);
     }
 
     /**

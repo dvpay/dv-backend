@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\TransferKind;
 use App\Enums\TransferStatus;
 use App\Http\Controllers\Controller;
 use App\Models\HotWallet;
@@ -12,25 +13,34 @@ use Illuminate\Support\Facades\Cache;
 
 class TransferController extends Controller
 {
+    #TODO: Swagger here ? How ?
+    #TODO: Remove invokable controller
     public function __invoke(Authenticatable $user)
     {
         return response()->stream(function () use ($user) {
-            $timeout = time() + 30;
+            $transferEnable = !$user->hasPermissionTo('transfer funds');
 
             while (true) {
                 echo "event: ping\n";
 
                 $transfersInProgress = Transfer::where('status', TransferStatus::Sending)
                     ->where('user_id', $user->id)
-                    ->limit(14)
+                    ->where('kind',TransferKind::TransferFromAddress)
                     ->latest()
                     ->get();
 
-                $hotWalletsQuery = HotWallet::whereNotIn('address', $transfersInProgress->pluck('address_from')->toArray())
+                $failTransfer = Transfer::where('status', TransferStatus::Failed)
                     ->where('user_id', $user->id)
-                    ->where('amount_usd', '>', 10)
+                    ->where('kind',TransferKind::TransferFromAddress)
+                    ->where('created_at', '>=', now()->subMinutes(60))
+                    ->get();
+
+                $hotWalletsQuery = HotWallet::whereNotIn('address', $transfersInProgress->pluck('address_from')->toArray())
+                    ->whereNotIn('address', $failTransfer->pluck('address_from')->toArray())
+                    ->where('user_id', $user->id)
+                    ->where('amount', '>', 0)
                     ->with('latestTransaction')
-                    ->orderBy('amount_usd', 'desc')
+                    ->orderBy('amount', 'desc')
                     ->limit(10);
 
                 $hotWallets = $hotWalletsQuery->get()
@@ -44,7 +54,9 @@ class TransferController extends Controller
 
                 $transferComplete = Transfer::where('status', TransferStatus::Complete)
                     ->where('user_id', $user->id)
+                    ->where('kind',TransferKind::TransferFromAddress)
                     ->where('created_at', '>=', now()->subHours(24))
+                    ->orderBy('created_at', 'desc')
                     ->limit(20)
                     ->get();
 
@@ -57,18 +69,22 @@ class TransferController extends Controller
                 }
 
                 $transferStatsComplete = Transfer::where('status', TransferStatus::Complete)
+                    ->where('kind',TransferKind::TransferFromAddress)
                     ->where('created_at', '>=', now()->subHours(24))
                     ->count();
 
 
                 $transferFail = Transfer::where('status', TransferStatus::Failed)
+                    ->where('kind',TransferKind::TransferFromAddress)
                     ->where('user_id', $user->id)
+                    ->latest()
                     ->limit(20)
                     ->get();
 
                 $timerNextTransfer = Cache::get('timeNextTransfer') - time();
 
                 $data = [
+                    'transferEnable'        => $transferEnable,
                     'hotWallets'            => $hotWallets,
                     'sumHotWallet'          => $sumHotWallet,
                     'countHotWallet'        => $countHotWallet,

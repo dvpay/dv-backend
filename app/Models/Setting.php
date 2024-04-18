@@ -2,24 +2,18 @@
 
 namespace App\Models;
 
+use App\Enums\RootSetting;
 use App\Models\Settings\AbstractSetting;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Setting extends AbstractSetting
 {
 
-    public static function getSettingsDefinitions (): array
+    public static function getSettingsDefinitions(): array
     {
-        return [
-            /**
-             * Global settings for service,
-             * these are not assigned to any model.
-             */
-            [
-                'name'    => 'registration_enable',
-                'cast'    => 'boolean',
-                'default' => true
-            ],
-        ];
+        /**
+         * Global settings for service,
+         * these are not assigned to any model.
+         */
+        return RootSetting::getRootSettingsDefinitions();
     }
 }

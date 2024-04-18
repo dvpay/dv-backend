@@ -6,6 +6,7 @@ namespace App\Services\Dictionary;
 
 use App\Enums\ExchangeChainType;
 use App\Enums\InvoiceStatus;
+use App\Enums\RootSetting;
 use App\Enums\UserRole;
 use App\Enums\WebhookType;
 use App\Enums\WithdrawalInterval;
@@ -15,15 +16,21 @@ use App\Models\Exchange;
 use App\Models\ExchangeDictionary;
 use App\Models\ExchangeKey;
 use App\Repositories\RateSourceRepository;
+use App\Services\Processing\Contracts\HeartbeatContract;
+use JetBrains\PhpStorm\Deprecated;
 
 class DictionaryService
 {
     public function __construct(
         private readonly RateSourceRepository $rateSourceRepository,
+        private readonly HeartbeatContract    $processingService
     )
     {
     }
 
+    /**
+     * @throws \Exception
+     */
     public function dictionaries(): array
     {
         return [
@@ -40,8 +47,22 @@ class DictionaryService
             'api'                 => $this->getApiDocumentation(),
             'roles'               => UserRole::values(),
             'chain'               => ExchangeChainType::cases(),
-            'registrationEnable'  => Settings::get('registration_enable'),
+            'registrationEnable'  => Settings::get(RootSetting::RegistrationEnable->value),
+            // #[Deprecated]
             'version'             => config('app.version'),
+            // #[Deprecated]
+            'processingVersion'   => $this->processingVersion(),
+            'versions' => [
+                'backend' => [
+                    #TODO: Create versioning mechanism
+                    'tag' => config('app.version'),
+                    'commitHash' => null,
+                    ],
+                'processing' => [
+                    'tag' => $this->processingVersion()?->release ?? null,
+                    'commitHash' => $this->processingVersion()?->commitHash ?? null,
+                ],
+            ]
         ];
     }
 
@@ -191,5 +212,16 @@ class DictionaryService
         return [
             'documentationUrl' => route('l5-swagger.default.api'),
         ];
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function processingVersion()
+    {
+        $status = $this->processingService->getStatusService();
+        $status = json_decode($status->getBody()->getContents());
+
+        return $status->appVersion ?? 'unknown';
     }
 }

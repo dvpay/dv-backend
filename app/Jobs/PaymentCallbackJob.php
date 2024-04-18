@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
+//TODO remove if callback work normal
 class PaymentCallbackJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -193,7 +194,6 @@ class PaymentCallbackJob implements ShouldQueue
             'currencyId' => CurrencyId::tryFrom($this->payerAddress->currency_id),
             'user'       => $store->user,
             'address'    => $address,
-            'state'      => HotWalletState::Busy,
             'blockchain' => $blockchain
         ]);
 

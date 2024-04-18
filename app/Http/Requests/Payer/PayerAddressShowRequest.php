@@ -9,7 +9,7 @@ class PayerAddressShowRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payer'    => ['required', 'regex:/^[a-z0-9\-]+$/'],
+            'payer'    => ['required', 'regex:/^[a-zA-Z0-9\-]+$/'],
             'currency' => ['required', 'exists:currencies,id'],
             'email'    => ['sometimes', 'email'],
             'ip'       => ['sometimes', 'ip', 'nullable'],

@@ -2,20 +2,12 @@
 
 namespace App\Providers;
 
-use App\Jobs\NewTransferJob;
 use App\Jobs\PaymentCallbackJob;
-use App\Jobs\TransferJob;
-use App\Jobs\WatchCallbackJob;
 use App\Services\Currency\CurrencyConversion;
 use App\Services\Currency\CurrencyRateService;
 use App\Services\HotWallet\HotWalletServiceInterface;
 use App\Services\Invoice\InvoiceAddressCreator;
 use App\Services\Invoice\InvoiceCreator;
-use App\Services\Processing\BalanceGetter;
-use App\Services\Processing\Contracts\TransferContract;
-use App\Services\Processing\TransferService;
-use App\Services\Withdrawal\WithdrawalRuleManager;
-use App\Services\WithdrawalWallet\WithdrawalWalletService;
 use Illuminate\Support\ServiceProvider;
 
 class WebhookServiceProvider extends ServiceProvider
@@ -26,12 +18,6 @@ class WebhookServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->app->bindMethod([WatchCallbackJob::class, 'handle'], function ($job, $app) {
-            return $job->handle(
-                config('processing.min_transaction_confirmations'),
-                $app->make(CurrencyConversion::class),
-            );
-        });
 
         $this->app->bindMethod([PaymentCallbackJob::class, 'handle'], function ($job, $app) {
             return $job->handle(
@@ -44,19 +30,5 @@ class WebhookServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->bindMethod([TransferJob::class, 'handle'], function ($job, $app) {
-            return $job->handle(
-                $app->get(WithdrawalRuleManager::class),
-                $app->get(TransferContract::class)
-            );
-        });
-
-        $this->app->bindMethod([NewTransferJob::class, 'handle'], function ($job, $app) {
-            return $job->handle(
-                $app->get(BalanceGetter::class),
-                $app->get(WithdrawalWalletService::class),
-                $app->get(TransferService::class)
-            );
-        });
     }
 }

@@ -10,7 +10,7 @@ class PayerStoreRequest extends FormRequest
     {
         return [
                 'storeId'     => ['required', 'string', 'min:1', 'max:255', 'exists:stores,id'],
-                'storeUserId' => ['required', 'regex:/^[a-z0-9\-]+$/'],
+                'storeUserId' => ['required', 'regex:/^[a-zA-Z0-9\-]+$/'],
         ];
     }
 

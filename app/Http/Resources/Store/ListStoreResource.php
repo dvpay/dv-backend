@@ -24,7 +24,6 @@ class ListStoreResource extends BaseResource
             'name'           => $this->name,
             'createdAt'      => $this->created_at->format(DATE_ATOM),
             'invoicesCount'  => $this->invoices_success_count,
-            'invoicesAmount' => $this->invoices_success_sum_amount
         ];
     }
 }

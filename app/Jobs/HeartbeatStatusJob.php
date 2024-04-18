@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\HeartbeatServiceName;
 use App\Enums\HeartbeatStatus;
+use App\Enums\Queue;
 use App\Models\Service;
 use App\Models\ServiceLogLaunch;
 use App\Services\Heartbeat\HeartbeatLogService;
@@ -39,7 +40,7 @@ class HeartbeatStatusJob implements ShouldQueue
         private readonly null|ServiceLogLaunch $serviceLogLaunch = null
     )
     {
-        $this->onQueue('monitor');
+        $this->onQueue(Queue::Monitor->value);
     }
 
     /**
@@ -59,7 +60,7 @@ class HeartbeatStatusJob implements ShouldQueue
             $this->messageVariable
         );
 
-        if ($this->status === HeartBeatStatus::Up && $this->status === HeartbeatStatus::Down) {
+        if ($this->status === HeartBeatStatus::Up || $this->status === HeartbeatStatus::Down) {
             $this->serviceLogLaunch->ended_at = now();
         }
         $this->serviceLogLaunch->status = $this->status;

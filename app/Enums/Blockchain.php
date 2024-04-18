@@ -61,6 +61,7 @@ enum Blockchain: string
         return match ($this) {
             self::Tron => 'https://tronscan.org/#/address',
             self::Bitcoin => 'https://www.blockchain.com/explorer/addresses/btc',
+            default => ''
         };
     }
 
@@ -69,6 +70,14 @@ enum Blockchain: string
         return match ($this) {
             self::Tron => 'https://apilist.tronscanapi.com/api/accountv2?address=',
             self::Bitcoin => 'https://blockchain.info/rawaddr/',
+        };
+    }
+
+    public function getAddressValidationRegex(): string
+    {
+        return match ($this) {
+            self::Tron => '/T[A-Za-z1-9]{33}/',
+            self::Bitcoin => '/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/',
         };
     }
 

@@ -9,7 +9,7 @@ class PayerStoreWithApiKeyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'storeUserId' => ['required', 'regex:/^[a-z0-9\-]+$/'],
+            'storeUserId' => ['required', 'regex:/^[a-zA-Z0-9\-]+$/'],
             'email'       => ['sometimes', 'email'],
             'ip'          => ['sometimes', 'ip']
         ];

@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ExchangeWithdrawalWallet extends Model
 {
+
+    use HasFactory;
+
     protected $fillable = [
         'address',
         'is_withdrawal_enable',
@@ -13,7 +17,12 @@ class ExchangeWithdrawalWallet extends Model
         'chain',
         'currency',
         'user_id',
-        'exchange_id'
+        'exchange_id',
+        'current_balance'
+    ];
+
+    protected $casts = [
+      'is_withdrawal_enable' =>  'boolean'
     ];
 
     public function user()

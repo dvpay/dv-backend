@@ -24,8 +24,11 @@ interface OwnerContract
      * @param string $passphrase
      * @return string
      */
-    public function attachColdWalletWithAddress(Blockchain $blockchain, string $owner, array $address): array;
+    public function attachColdWalletWithAddress(Blockchain $blockchain, string $owner, array $address, ?string $validateCode = null): array;
 
 
     public function updateCallbackUrl(string $clientID, string $url): true;
+
+    public function telegramDeepLink(string $owner): array;
+
 }

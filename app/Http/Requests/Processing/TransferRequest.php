@@ -11,8 +11,9 @@ class TransferRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'uuid' => ['required', 'string', 'uuid'],
-            'status' => ['required', new Enum(TransferStatus::class)]
+            'uuid'   => ['required', 'string', 'uuid'],
+            'status' => ['required', new Enum(TransferStatus::class)],
+            'error'  => ['sometimes', 'nullable', 'string'],
         ];
     }
 

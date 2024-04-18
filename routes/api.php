@@ -92,22 +92,15 @@ Route::prefix('stores')->name('stores.')->middleware(['auth:sanctum', 'role:root
     Route::delete('{store}/api-keys/{apiKey}', [ApiKeyController::class, 'delete']);
 
     Route::prefix('wallets')->group(function () {
-//        Route::post('create', [WalletController::class, 'create']);
         Route::get('list', [WalletController::class, 'list']);
-//
-//        Route::get('{wallet}/settings', [WalletController::class, 'getSettings']);
-//        Route::put('{wallet}/settings', [WalletController::class, 'updateSettings']);
-//
-//        Route::post('withdrawals/create', [WalletController::class, 'withdrawal']);
         Route::post('withdrawals/transfer', [WalletController::class, 'transfer']);
-//        Route::get('withdrawals/list', [WalletController::class, 'withdrawalList']);
+        Route::get('withdrawals/list', [WalletController::class, 'withdrawalList']);
         Route::get('withdrawals/stats', [WalletController::class, 'withdrawalStats']);
         Route::get('withdrawals/dates', [WalletController::class, 'withdrawalDates']);
     });
 
     Route::post('invoices/create', [InvoiceController::class, 'createWithAuthKey']);
     Route::post('invoices/addresses', [InvoiceController::class, 'invoiceAddressList']);
-    Route::get('invoices/addresses/new', [InvoiceController::class, 'invoiceAddressListNew']);
     Route::get('invoices/{invoice}', [InvoiceController::class, 'detailWithAuthKey']);
     Route::post('invoices', [InvoiceController::class, 'list']);
 
@@ -115,9 +108,9 @@ Route::prefix('stores')->name('stores.')->middleware(['auth:sanctum', 'role:root
 
     Route::post('dashboard/deposit/summary', [DashboardController::class, 'getDepositSummary']);
     Route::post('dashboard/deposit/transactions', [DashboardController::class, 'getDepositTransactions']);
-    Route::get('dashboard/economy', [DashboardController::class, 'getEconomyStats']);
 
     Route::get('processing/wallets', [ProcessingController::class, 'getProcessingWallets']);
+    Route::post('processing/switch-type', [ProcessingController::class, 'updateProcessingTransferType']);
     Route::get('processing/wallets/{blockchain}', [ProcessingController::class, 'getProcessingWalletInfo']);
     Route::get('processing/wallets/{blockchain}/stats', [ProcessingController::class, 'getProcessingWalletStats']);
     Route::get('processing/wallets/{blockchain}/transfers', [ProcessingController::class, 'getProcessingWalletTransfers']);
@@ -127,6 +120,7 @@ Route::prefix('stores')->name('stores.')->middleware(['auth:sanctum', 'role:root
     Route::get('heartbeat/status', [HeartbeatController::class, 'getStatusForDashboard']);
     Route::get('heartbeat/status/all', [HeartbeatController::class, 'getAllService']);
     Route::get('heartbeat/status/history', [HeartbeatController::class, 'getServiceLaunch']);
+    Route::get('heartbeat/status/financial-stats', [HeartbeatController::class, 'getFinancialStatsForDashboard']);
     Route::get('heartbeat/monitor', [HeartbeatController::class, 'getResources']);
 
     Route::get('heartbeat/service', [HeartbeatController::class, 'getAllService']);
@@ -148,24 +142,24 @@ Route::prefix('stores')->name('stores.')->group(function () {
 Route::prefix('invoices')->name('invoices.')->group(function () {
     Route::post('/', [InvoiceController::class, 'createWithApiKey'])->middleware('auth:store-api-key');
     Route::get('{invoice}', [InvoiceController::class, 'detail']);
-    Route::get('{invoice}/addresses/{currency}', [InvoiceController::class, 'invoiceAddress']);
     Route::get('{invoice}/confirm', [InvoiceController::class, 'invoiceConfirm']);
     Route::put('{invoice}', [InvoiceController::class, 'saveEmail']);
 });
 Route::prefix('/payer')->name('.payer')->middleware(['auth:sanctum'])->group(function () {
-    Route::get('/', [PayerController::class, 'index']);
-    Route::post('/', [PayerController::class, 'store']);
+    Route::get('/', [PayerController::class, 'index'])->name('.index');
+    Route::post('/', [PayerController::class, 'store'])->name('.store');
     Route::get('/{payer}/invoices', [PayerController::class, 'invoices']);
 });
 
 Route::prefix('/payer')->name('.payer')->group(function () {
-    Route::get('/{payer}/', [PayerController::class, 'show']);
-    Route::get('/{payer}/addresses/{currency}', [PayerController::class, 'payerAddress']);
+    Route::get('/{payer}/', [PayerController::class, 'show'])->name('.show');
+    Route::get('/{payer}/addresses/{currency}', [PayerController::class, 'payerAddress'])->name('.payerAddress');
 });
 
 Route::middleware('auth:store-api-key')->group(function () {
     Route::get('/balances', [StoreController::class, 'balancesProcessingWallets']);
     Route::get('/withdrawals/unconfirmed', [StoreController::class, 'unconfirmedWithdrawals']);
+    Route::post('/withdrawals/withdrawal-from-processing-wallet', [StoreController::class, 'withdrawalFromProcessingWallet']);
     Route::post('/payer/create', [PayerController::class, 'createWithApikey']);
     Route::get('/address/{payer}/{currency}', [AddressController::class, 'getAddress']);
     Route::post('/payer/addresses', [AddressController::class, 'getAddresses']);
@@ -177,9 +171,10 @@ Route::prefix('telegram')->group(function () {
         'auth:sanctum', 'role:admin|user'
     ]);
     Route::post('command', [TelegramController::class, 'command']);
+    Route::get('processing', [TelegramController::class, 'processing'])->middleware(['auth:sanctum', 'role:admin|user']);;
 });
 
-Route::get('dictionaries', [DictionaryController::class, 'dictionaries']);
+Route::get('dictionaries', [DictionaryController::class, 'dictionaries'])->middleware(['auth:sanctum']);
 
 Route::post('/processing/callback', [ProcessingController::class, 'callback'])
     ->name('processing.callback')
@@ -189,7 +184,6 @@ Route::post('/processing/callback-transfer', [ProcessingController::class, 'tran
 
 Route::prefix('support')->name('support.')->middleware(['auth:sanctum', 'role:admin|support'])->group(function () {
     Route::get('transactions/{txId}', [SupportController::class, 'getTransactionInfo']);
-    Route::post('transactions/{txId}/invoices/{invoice}', [SupportController::class, 'attachTransactionToInvoice']);
     Route::post('transactions/{txId}/invoices/{invoice}/force', [SupportController::class, 'forceAttachTransactionToInvoice']);
     Route::post('transactions/{txId}/payer/', [SupportController::class, 'attachTransactionToPayer']);
     Route::post('invoices/{invoice}/webhook', [WebhookController::class, 'sendWebhook']);
@@ -210,6 +204,8 @@ Route::prefix('exchanges')->middleware(['auth:sanctum'])->group(function () {
     Route::get('withdrawal/cold-wallets', [ExchangeController::class, 'getColdWallets']);
     Route::post('withdrawal/cold-wallets', [ExchangeController::class, 'storeColdWallets']);
     Route::put('withdrawal/status', [ExchangeController::class, 'updateStatus']);
+    Route::post('withdrawal/exchange-status', [ExchangeController::class, 'updateExchangeStatus']);
+    Route::get('withdrawal/history', [ExchangeController::class, 'withdrawalHistory']);
     Route::delete('withdrawal/{coldWallet}/cold-wallets', [ExchangeController::class, 'deleteColdWallets']);
 });
 
@@ -234,7 +230,9 @@ Route::prefix('withdrawal-wallet')->middleware(['auth:sanctum'])->group(function
     Route::get('/', [WithdrawalWalletController::class, 'index']);
     Route::post('/withdrawal', [WithdrawalWalletController::class, 'withdrawal']);
     Route::post('/withdrawal-from-address', [WithdrawalWalletController::class, 'withdrawalFromAddress']);
+    Route::post('/withdrawal-from-processing-wallet', [WithdrawalWalletController::class, 'withdrawalFromProcessingWallet']);
     Route::get('/{withdrawalWallet}', [WithdrawalWalletController::class, 'show']);
+    Route::put('/{withdrawalWallet}/withdrawal-rules', [WithdrawalWalletController::class, 'updateWithdrawalRules']);
     Route::put('/{withdrawalWallet}', [WithdrawalWalletController::class, 'update']);
 });
 
@@ -250,6 +248,7 @@ Route::prefix('/system')->group(function () {
 
 Route::prefix('/hot-wallets')->middleware(['auth:sanctum', 'role:root|admin'])->group(function () {
     Route::get('/', [HotWalletController::class, 'index']);
+    Route::get('/summary', [HotWalletController::class, 'summary']);
     Route::get('/{hotWallet}', [HotWalletController::class, 'show']);
     Route::get('/{blockchain}/stats', [HotWalletController::class, 'stats']);
 });

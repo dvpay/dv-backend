@@ -22,7 +22,8 @@ class DatabaseSeeder extends Seeder
                 PermissionSeeder::class,
                 NotificationCategorySeeder::class,
                 NotificationSeeder::class,
-                NotificationTargetSeeder::class
+                NotificationTargetSeeder::class,
+                SettingSeeder::class,
         ]);
     }
 }

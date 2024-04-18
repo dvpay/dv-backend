@@ -70,6 +70,7 @@ final readonly class RegistrationService
             'invoiceExpirationTime' => config('setting.invoice_lifetime'),
             'addressHoldTime'       => config('setting.store_address_hold_time'),
             'status'                => true,
+            'staticAddresses'       => true,
         ]);
 
         $this->storeService->create($dto);

@@ -16,5 +16,5 @@ interface Client
      *
      * @return mixed
      */
-    public function request(HttpMethod $method, string $uri, array $data): ResponseInterface;
+    public function request(HttpMethod $method, string $uri, array $data, ?string $statsUri = null): ResponseInterface;
 }

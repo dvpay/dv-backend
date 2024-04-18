@@ -8,7 +8,6 @@ use App\Models\HotWallet;
 use App\Models\Invite;
 use App\Models\Store;
 use App\Models\StoreApiKey;
-use App\Models\UserInvoiceAddress;
 use App\Models\Webhook;
 use App\Models\WithdrawalWallet;
 use App\Policies\ExchangeWithdrawalWalletPolicy;
@@ -16,7 +15,6 @@ use App\Policies\HotWalletPolicy;
 use App\Policies\InvitePolicy;
 use App\Policies\StoreApiKeyPolicy;
 use App\Policies\StorePolicy;
-use App\Policies\UserInvoiceAddressPolicy;
 use App\Policies\WebhookPolicy;
 use App\Policies\WithdrawalWalletPolicy;
 use App\Services\Processing\Contracts\OwnerContract;
@@ -39,7 +37,6 @@ class AuthServiceProvider extends ServiceProvider
         Webhook::class                  => WebhookPolicy::class,
         StoreApiKey::class              => StoreApiKeyPolicy::class,
         Invite::class                   => InvitePolicy::class,
-        UserInvoiceAddress::class       => UserInvoiceAddressPolicy::class,
         WithdrawalWallet::class         => WithdrawalWalletPolicy::class,
         ExchangeWithdrawalWallet::class => ExchangeWithdrawalWalletPolicy::class,
         HotWallet::class                => HotWalletPolicy::class,

@@ -15,6 +15,7 @@ class PayerResource extends BaseResource
         $this->rate = $value;
         return $this;
     }
+
     public function toArray(Request $request): array
     {
         return [
@@ -27,6 +28,9 @@ class PayerResource extends BaseResource
                 'status'            => $this->store->status,
                 'staticAddress'     => $this->store->static_addresses,
                 'storeCurrencyCode' => $this->store->currency->code,
+                'returnUrl'         => $this->store->return_url,
+                'successUrl'        => $this->store->success_url,
+                'siteUrl'           => $this->store->site,
             ],
             'address'       => PayerAddressCollection::make($this->payerAddresses),
             'currency'      => CurrencyId::enabledCurrency(),

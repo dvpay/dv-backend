@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -14,7 +15,7 @@ class SharpRateNotification extends Notification implements ShouldQueue
 
     public function __construct(private readonly array $data)
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -27,11 +28,11 @@ class SharpRateNotification extends Notification implements ShouldQueue
         return (new MailMessage())
                 ->subject(__('Sharp Exchange Rate Change'))
                 ->greeting(__('Sharp Exchange Rate Change'))
-                ->line(__('Currency from', ['symbol' => $this->data['from']]))
-                ->line(__('Currency to', ['symbol' => $this->data['to']]))
-                ->line(__('Old rate', ['amount' => $this->data['oldRate']]))
-                ->line(__('Current rate', ['amount' => $this->data['currentRate']]))
-                ->line(__('Difference', ['amount' => $this->data['difference']]))
+                ->line(__('Currency from: :symbol', ['symbol' => $this->data['from']]))
+                ->line(__('Currency to: :symbol', ['symbol' => $this->data['to']]))
+                ->line(__('Old rate :amount', ['amount' => $this->data['oldRate']]))
+                ->line(__('Current rate :amount', ['amount' => $this->data['currentRate']]))
+                ->line(__('Difference :amount', ['amount' => $this->data['difference']]))
                 ->salutation(' ');
     }
 
@@ -41,11 +42,11 @@ class SharpRateNotification extends Notification implements ShouldQueue
                 ->to($notifiable?->telegram->chat_id)
                 ->content(__('Sharp Exchange Rate Change'))
                 ->line("")
-                ->line(__('Currency from', ['symbol' => $this->data['from']]))
-                ->line(__('Currency to', ['symbol' => $this->data['to']]))
-                ->line(__('Old rate', ['amount' => $this->data['oldRate']]))
-                ->line(__('Current rate', ['amount' => $this->data['currentRate']]))
-                ->line(__('Difference', ['amount' => $this->data['difference']]));
+                ->line(__('Currency from: :symbol', ['symbol' => $this->data['from']]))
+                ->line(__('Currency to: :symbol', ['symbol' => $this->data['to']]))
+                ->line(__('Old rate :amount', ['amount' => $this->data['oldRate']]))
+                ->line(__('Current rate :amount', ['amount' => $this->data['currentRate']]))
+                ->line(__('Difference :amount', ['amount' => $this->data['difference']]));
     }
 
 }

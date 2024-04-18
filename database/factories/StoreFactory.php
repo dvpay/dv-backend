@@ -21,6 +21,7 @@ class StoreFactory extends Factory
             'rate_source' => RateSource::LoadRateFake,
             'invoice_expiration_time' => config('setting.invoice_lifetime'),
             'processing_owner_id' => app(OwnerContract::class)->createOwner('test-store-' . $this->faker->uuid),
+            'minimal_payment' => 0.01,
         ];
     }
 }

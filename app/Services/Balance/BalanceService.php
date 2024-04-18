@@ -7,12 +7,9 @@ namespace App\Services\Balance;
 use App\Enums\Blockchain;
 use App\Enums\CurrencyId;
 use App\Enums\CurrencySymbol;
-use App\Enums\InvoiceAddressState;
 use App\Enums\RateSource;
 use App\Models\Currency;
-use App\Models\InvoiceAddress;
 use App\Models\User;
-use App\Models\UserInvoiceAddress;
 use App\Services\Currency\CurrencyRateService;
 use App\Services\Processing\BalanceGetter;
 use Illuminate\Cache\Repository;
@@ -22,46 +19,16 @@ use Exception;
 /**
  * BalanceService
  */
-class BalanceService
+readonly class BalanceService
 {
     /**
      * @param BalanceGetter $balanceGetter
      * @param Repository $cache
      */
     public function __construct(
-        private readonly BalanceGetter $balanceGetter,
-        private readonly Repository $cache
+        private BalanceGetter $balanceGetter,
     )
     {
-    }
-
-    /**
-     * @param User $user
-     * @param array|null $stores
-     * @return array
-     */
-    public function getAllBalances(User $user, ?array $stores): array
-    {
-        $balancesQuery = InvoiceAddress::selectRaw(
-            'invoice_addresses.currency_id as currency, SUM(invoice_addresses.balance) as balance'
-        )
-            ->join('invoices', 'invoices.id', 'invoice_addresses.invoice_id')
-            ->join('stores', 'stores.id', 'invoices.store_id')
-            ->where('stores.user_id', $user->id);
-
-        if ($stores) {
-            $balancesQuery->whereIn('stores.id', $stores);
-        }
-
-        $balances = $balancesQuery->groupBy('invoice_addresses.currency_id')
-            ->get()
-            ->toArray();
-
-        if (!$balances) {
-            $balances = $this->getDefaultBalances();
-        }
-
-        return $balances;
     }
 
     /**
@@ -70,11 +37,6 @@ class BalanceService
     private function getDefaultBalances(): array
     {
         $balances = [];
-
-        $addressCount = ['total' => 0];
-        foreach (InvoiceAddressState::cases() as $state) {
-            $addressCount[$state->value] = 0;
-        }
 
         $blockchains = Blockchain::cases();
         foreach ($blockchains as $blockchain) {
@@ -87,7 +49,6 @@ class BalanceService
                     'currency' => $currency->id,
                     'balance' => '0',
                     'balanceUsd' => '0',
-                    'addressCount' => $addressCount,
                 ];
             }
         }
@@ -106,30 +67,13 @@ class BalanceService
     {
 
         $balances = $this->balanceGetter->getBalanceByOwnerStoreId($user->processing_owner_id);
-        $addresses = $this->getAddressesGroupedByCurrencyAndState($user);
-
         $result = [];
         foreach ($balances as $key => $value) {
             $currency = $this->getCurrencyName($key);
-
-            $addressCount = ['total' => 0];
-            if (isset($addresses[$currency])) {
-                foreach (InvoiceAddressState::cases() as $state) {
-                    if (!isset($addressCount[$state->value])) {
-                        $addressCount[$state->value] = 0;
-                    }
-                    if (isset($addresses[$currency][$state->value])) {
-                        $addressCount[$state->value] = $addresses[$currency][$state->value];
-                        $addressCount['total'] += $addressCount[$state->value];
-                    }
-                }
-            }
-
             $result[] = [
                 'currency'   => $currency,
                 'balance'    => (string)$value,
                 'balanceUsd' => $this->inUsd($currency, (string)$value),
-                'addressCount' => $addressCount,
             ];
         }
 
@@ -155,23 +99,6 @@ class BalanceService
         return 'Unknown';
     }
 
-    private function getAddressesGroupedByCurrencyAndState(User $user): array
-    {
-        $userInvoiceAddresses = UserInvoiceAddress::selectRaw('state, currency_id, COUNT(id) AS count')
-            ->where('processing_owner_id', '=', $user->processing_owner_id)
-            ->groupBy('state', 'currency_id')
-            ->get();
-
-        $addresses = [];
-        foreach ($userInvoiceAddresses as $address) {
-            if (!isset($addresses[$address->currency_id])) {
-                $addresses[$address->currency_id] = [];
-            }
-            $addresses[$address->currency_id][$address->state] = $address->count;
-        }
-
-        return $addresses;
-    }
 
 	/**
 	 * @param string $currencyId

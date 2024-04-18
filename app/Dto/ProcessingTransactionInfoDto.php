@@ -15,7 +15,6 @@ class ProcessingTransactionInfoDto extends ArrayDto
     public readonly string $contractAddress;
     public readonly string $sender;
     public readonly string $receiver;
-    public array $watches = [];
     public string $payerId = '';
     public readonly int $confirmations;
 }

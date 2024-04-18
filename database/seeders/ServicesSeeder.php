@@ -25,18 +25,6 @@ class ServicesSeeder extends Seeder
                     $url = 'https://api.coingate.com/v2/rates';
                     break;
 
-                case HeartbeatServiceName::ServiceProcessing:
-                    $url = config('processing.url') . '/status';
-                    break;
-
-                case HeartbeatServiceName::ServiceBitcoinExplorer:
-                    $url = config('explorer.bitcoinExplorerUrl') . '/status';
-                    break;
-
-                case HeartbeatServiceName::ServiceTronExplorer:
-                    $url = config('explorer.tronExplorerUrl') . '/status';
-                    break;
-
                 default:
                     $url = null;
             }

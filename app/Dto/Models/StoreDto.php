@@ -21,4 +21,5 @@ class StoreDto extends ArrayDto
 
     public readonly bool $status;
     public readonly bool $staticAddresses;
+    public readonly float $minimalPayment;
 }

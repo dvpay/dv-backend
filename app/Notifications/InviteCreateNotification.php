@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -14,7 +15,7 @@ class InviteCreateNotification extends Notification implements ShouldQueue
 
     public function __construct(private readonly string $token)
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -28,7 +29,7 @@ class InviteCreateNotification extends Notification implements ShouldQueue
             ->subject(Lang::get("Invite in :app Team", ['app' => config('app.name')]))
             ->line(Lang::get('Dear :email', ['email' => $notifiable->email]))
             ->line(Lang::get("We\\'re excited to invite you to join our application!"))
-            ->line(Lang::get("To get started, please follow the link below to create your account"))
+            ->line(Lang::get("To get started, please follow the link below to create your account:"))
             ->action(Lang::get("Accept invite"), $this->inviteUrl($this->token))
             ->line(Lang::get("Thank you for considering our application. We\\'re looking forward to seeing you online!"));
     }

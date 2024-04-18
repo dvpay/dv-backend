@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Queue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -14,7 +15,7 @@ class ExceptionNotification extends Notification implements ShouldQueue
 
     public function __construct(protected readonly string $message)
     {
-        $this->onQueue('notifications');
+        $this->onQueue(Queue::Notifications->value);
     }
 
     public function via($notifiable): array
@@ -26,8 +27,8 @@ class ExceptionNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage())
                 ->replyTo($notifiable->email)
-                ->subject(__('Caught Error'))
-                ->greeting(__('Caught Error'))
+                ->subject('*' . __('Caught Error') . '*')
+                ->greeting('*' . __('Caught Error') . '*')
                 ->error()
                 ->line($this->message)
                 ->salutation(' ');

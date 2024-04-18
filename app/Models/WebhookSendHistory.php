@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\WebhookStatus;
 use App\Enums\WebhookType;
 use App\Models\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class WebhookSendHistory extends Model
 {
@@ -22,6 +23,7 @@ class WebhookSendHistory extends Model
         'request',
         'response',
         'response_status_code',
+        'tx_hash',
     ];
 
     protected $casts = [
@@ -30,4 +32,9 @@ class WebhookSendHistory extends Model
         'request' => 'json',
         'response' => 'json',
     ];
+
+    public function model(): MorphTo
+    {
+        return $this->morphTo('model');
+    }
 }

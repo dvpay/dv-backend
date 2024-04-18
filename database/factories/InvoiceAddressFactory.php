@@ -17,7 +17,6 @@ class InvoiceAddressFactory extends Factory
             'invoice_id' => $this->faker->uuid,
             'address' => Str::random(21),
             'blockchain' => Blockchain::Tron,
-            'watch_id' => $this->faker->uuid,
             'currency_id' => CurrencySymbol::USDT->value . '.' . Blockchain::Tron->value,
             'balance' => 0,
             'rate' => 1,

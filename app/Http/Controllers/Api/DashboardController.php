@@ -12,6 +12,7 @@ use App\Http\Resources\DefaultResponseResource;
 use App\Services\Dashboard\DashboardService;
 use App\Services\Dashboard\DepositSummaryService;
 use Illuminate\Contracts\Auth\Authenticatable;
+use OpenApi\Attributes as OA;
 
 /**
  * DashboardController
@@ -50,6 +51,18 @@ class DashboardController extends ApiController
      *
      * @return GetDepositTransactionCollection
      */
+    #[OA\Get(
+        path: '/stores/dashboard/deposit/transactions',
+        summary: 'Get deposit transactions',
+        security: [["bearerAuth" => []]],
+        tags: ['Dashboard'],
+        responses: [
+            new OA\Response(response: 200, description: "Get static address", content: new OA\JsonContent(
+                example: '{"result":[{"date":"2024-02-13T16:12:20+00:00","invoiceId":"50db9764-5e7a-4aa9-9973-b73f23d2684d","custom":null,"description":null,"storeName":"Store1","amountUsd":"115.06","amount":"0.00232990","tx":"7afe4a0c353a24e896cb757cfca222fd89d86541d10b80244c1ce1d1581ab07e","explorerLink":"https:\/\/www.blockchain.com\/btc\/tx\/7afe4a0c353a24e896cb757cfca179fd89d86333d10b80244c1ce1d1581ab07e","currencyId":"BTC.Bitcoin"},{"date":"2024-02-13T16:08:20+00:00","invoiceId":"4a17e584-a9a7-498a-94e9-1ecd3463c09b","custom":null,"description":null,"storeName":"Store2","amountUsd":"15.00","amount":"15.00000000","tx":"03b9c47f0b28b51cb6800c7778074c119aeee5fea864cda65901a6b22f2296e7","explorerLink":"https:\/\/tronscan.org\/#\/transaction\/03b9c47f0b28b51cb6800c7733334c959aeee5fea864cda65901a6b22f2296e7","currencyId":"USDT.Tron"}],"errors":[]}',
+            )),
+        ],
+
+    )]
     public function getDepositTransactions(GetDepositTransactionsRequest $request): GetDepositTransactionCollection
     {
         $user = $request->user();
@@ -59,24 +72,5 @@ class DashboardController extends ApiController
         $transactions = $this->dashboardService->getDepositTransactions($user, $stores, $timeRange);
 
         return new GetDepositTransactionCollection($transactions);
-    }
-
-    /**
-     * Calculates exchanged amount and saved on commission amount.
-     *
-     * GET /dashboard/economy
-     *
-     * @param Authenticatable $user
-     * @return DefaultResponseResource
-     */
-    public function getEconomyStats(Authenticatable $user): DefaultResponseResource
-    {
-        $data = [
-            'saved'     => $this->dashboardService->getSavedOnCommissionStats($user),
-            'exchanged' => $this->dashboardService->getGetExchangedStats($user),
-            'withdrawn' => $this->dashboardService->getExchangeColdWalletWithdrawalsStats($user),
-        ];
-
-        return new DefaultResponseResource($data);
     }
 }

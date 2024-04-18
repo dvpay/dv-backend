@@ -28,7 +28,8 @@ class StoreService
                 'rate_scale'              => $dto->rateScale,
                 'invoice_expiration_time' => $dto->invoiceExpirationTime,
                 'address_hold_time'       => $dto->addressHoldTime,
-                'status'                  => $dto->status
+                'status'                  => $dto->status,
+                'static_addresses'        => $dto->staticAddresses,
         ]);
     }
 

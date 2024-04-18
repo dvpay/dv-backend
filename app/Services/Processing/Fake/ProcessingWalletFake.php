@@ -24,9 +24,15 @@ class ProcessingWalletFake implements ProcessingWalletContract
                 'bandwidthLimit' => rand(1000, 9999999),
                 'energy'         => rand(1000, 9999999),
                 'energyLimit'    => rand(1000, 9999999),
+                'transferType'   => 'delegate',
             ]);
         }
 
         return $result;
+    }
+
+    public function switchType(string $ownerId, string $blockchain, string $type): true
+    {
+        return true;
     }
 }

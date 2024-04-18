@@ -10,6 +10,7 @@ use App\Jobs\HeartbeatStatusJob;
 use App\Jobs\TelegramNotificationJob;
 use App\Models\Service;
 use App\Models\ServiceLogLaunch;
+use App\Services\Processing\Contracts\HeartbeatContract;
 use App\Services\Processing\ProcessingService;
 use Exception;
 use Illuminate\Console\Command;
@@ -29,7 +30,7 @@ class ProcessingServiceStatusCheck extends Command
      */
     private Service $service;
 
-    public function __construct(private readonly ProcessingService $processingService)
+    public function __construct(private readonly HeartbeatContract $processingService)
     {
         parent::__construct();
     }
@@ -57,6 +58,7 @@ class ProcessingServiceStatusCheck extends Command
     public function handle(): void
     {
         $this->initMonitor();
+
         HeartbeatStatusJob::dispatch(
             service: $this->service,
             status: HeartbeatStatus::InProgress,
@@ -142,7 +144,7 @@ class ProcessingServiceStatusCheck extends Command
 	/**
 	 * @return void
 	 */
-    protected function initMonitor():void
+    private function initMonitor():void
     {
         $this->service = Service::where('slug', HeartbeatServiceName::CronProcessingStatusCheck)
             ->first();

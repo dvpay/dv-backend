@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Root;
 
+use App\Enums\RootSetting;
 use App\Facades\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Root\SettingUpdateRequest;
@@ -33,8 +34,8 @@ class SettingController extends Controller
     public function registration()
     {
         $response = (object)[
-            'name' => 'registration_enable',
-            'value' => Settings::get('registration_enable')
+            'name' => RootSetting::RegistrationEnable->value,
+            'value' => Settings::get(RootSetting::RegistrationEnable->value)
         ];
 
         return SettingResource::make($response );

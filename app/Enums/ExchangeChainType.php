@@ -20,4 +20,13 @@ enum ExchangeChainType: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function blockchain(): Blockchain
+    {
+        return match ($this) {
+            self::TRC20USDT => Blockchain::Tron,
+            self::ERC20USDT, self::ETH => Blockchain::Ethereum,
+            self::BTC => Blockchain::Bitcoin,
+        };
+    }
 }

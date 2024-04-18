@@ -8,6 +8,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\RateSource as RateSourceEnum;
 use App\Models\Traits\HasUuid;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -48,6 +49,7 @@ class Store extends Model
             'address_hold_time',
             'status',
             'static_addresses',
+            'minimal_payment',
     ];
 
     protected $casts = [
@@ -55,9 +57,9 @@ class Store extends Model
             'rate_scale'     => 'string',
     ];
 
-    public function user(): HasOne
+    public function user(): BelongsTo
     {
-        return $this->hasOne(User::class, 'id', 'user_id');
+        return $this->belongsTo(User::class);
     }
 
     public function currency(): HasOne

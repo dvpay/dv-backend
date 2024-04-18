@@ -3,28 +3,29 @@
 namespace App\Models;
 
 use App\Enums\Blockchain;
-use App\Enums\HotWalletState;
 use App\Enums\TransactionType;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class HotWallet extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'currency_id',
         'user_id',
         'address',
         'blockchain',
-        'state',
         'amount',
         'amount_usd'
     ];
 
     protected $casts = [
         'blockchain' => Blockchain::class,
-        'state'      => HotWalletState::class,
     ];
 
     public function resolveRouteBinding($value, $field = null)
@@ -34,12 +35,12 @@ class HotWallet extends Model
             ->firstOrFail();
     }
 
-    public function transactions(): HasMany
+    public function allTransactions(): HasMany
     {
-        return $this->hasMany(Transaction::class, 'to_address', 'address')
-            ->orWhere(function ($query) {
-                $query->where('from_address', $this->address);
-            });
+        $incoming = $this->transactionsIncoming();
+        $outgoing = $this->transactionsOutgoing();
+
+        return $incoming->union($outgoing);
     }
 
     public function currency(): HasOne
@@ -70,8 +71,8 @@ class HotWallet extends Model
             ->take(1);
     }
 
-    public function user(): HasOne
+    public function user(): BelongsTo
     {
-        return $this->hasOne(User::class, 'id', 'user_id');
+        return $this->BelongsTo(User::class);
     }
 }

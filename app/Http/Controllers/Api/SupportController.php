@@ -48,23 +48,6 @@ class SupportController extends ApiController
     }
 
     /**
-     * @param Request $request
-     * @param string $txId
-     * @param Invoice $invoice
-     * @return DefaultResponseResource
-     * @throws InvalidArgumentException
-     * @throws \Throwable
-     */
-    public function attachTransactionToInvoice(Request $request, string $txId, Invoice $invoice): DefaultResponseResource
-    {
-        $user = $request->user();
-
-        $this->transactionService->attachTransactionToInvoice($txId, $invoice, $user);
-
-        return (new DefaultResponseResource([]));
-    }
-
-    /**
      * @param string $txId
      * @param Invoice $invoice
      * @param Authenticatable $user

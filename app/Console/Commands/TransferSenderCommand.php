@@ -4,8 +4,9 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Dto\Transfer\TransferDto;
+use App\Enums\TransferKind;
 use App\Enums\TransferStatus;
-use App\Models\Transfer as TransferModel;
+use App\Models\Transfer;
 use App\Services\Processing\Contracts\TransferContract;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
@@ -36,8 +37,9 @@ class TransferSenderCommand extends Command
      */
     public function handle(TransferContract $transferContract): void
     {
-        $transfers = TransferModel::where('status', TransferStatus::Waiting->value)
+        $transfers = Transfer::where('status', TransferStatus::Waiting->value)
             ->where('currency_id', $this->argument('currency'))
+            ->where('kind',TransferKind::TransferFromAddress)
             ->oldest();
 
         if ($this->argument('currency') === 'USDT.Tron') {
@@ -48,6 +50,7 @@ class TransferSenderCommand extends Command
             $dto = new TransferDto([
                 'uuid'        => Str::uuid(),
                 'user'        => $transfer->user,
+                'kind'        => TransferKind::TransferFromAddress,
                 'currency'    => $transfer->currency,
                 'status'      => TransferStatus::Sending,
                 'addressFrom' => $transfer->address_from,

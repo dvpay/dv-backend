@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\ExchangeRequest;
 use App\Models\ProcessingCallback;
 use App\Models\ServiceLog;
+use App\Models\ServiceLogLaunch;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -42,6 +43,7 @@ class ServiceLogClear extends Command
 		$time = time();
 
 		ServiceLog::whereRaw('DATEDIFF(NOW(), created_at) > 30')->delete();
+		ServiceLogLaunch::whereRaw('DATEDIFF(NOW(), start_at) > 30')->delete();
         ExchangeRequest::whereRaw('DATEDIFF(NOW(), created_at) > 14')->delete();
         ProcessingCallback::whereRaw('DATEDIFF(NOW(), created_at) > 14')->delete();
 

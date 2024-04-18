@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\HeartbeatServiceName;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Service extends  Model
 {
@@ -24,7 +25,7 @@ class Service extends  Model
         return $this->hasMany(ServiceLogLaunch::class, 'service_id', 'id');
     }
 
-    public function serviceLogLaunchLatest()
+    public function serviceLogLaunchLatest(): HasOne
     {
         return $this->hasOne(ServiceLogLaunch::class, 'service_id', 'id')->latestOfMany();
     }

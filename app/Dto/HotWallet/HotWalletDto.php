@@ -14,7 +14,6 @@ class HotWalletDto extends ArrayDto
     public readonly User $user;
     public readonly string $address;
     public readonly Blockchain $blockchain;
-    public readonly HotWalletState $state;
     public ?float $amount = 0;
     public ?float $amountUsd = 0;
 }

@@ -15,7 +15,11 @@ class StoreAuthGuard
      */
     public function __invoke(Request $request)
     {
-        if (!$apiKey = $request->header('X-Api-Key')) {
+        $this->setApiKeyFromQueryToHeader($request);
+
+        $apiKey = $request->header('X-Api-Key');
+
+        if (!$apiKey) {
             throw new AuthenticationException(__("You don't have permission to this action!"));
         }
 
@@ -28,5 +32,14 @@ class StoreAuthGuard
         }
 
         return $user;
+    }
+
+    private function setApiKeyFromQueryToHeader(Request $request): void
+    {
+        $apiKeyFromQuery = $request->input('api_key');
+
+        if ($apiKeyFromQuery) {
+            $request->headers->set('X-Api-Key', $apiKeyFromQuery);
+        }
     }
 }

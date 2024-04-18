@@ -24,6 +24,7 @@ class SendTransactionTelegramNotificationListener
         match ($transaction->type) {
             TransactionType::Invoice => $transaction->user->notifyReceivingPayment($transaction),
             TransactionType::Transfer => $transaction->user->notifyTransfer($transaction),
+            default => null
         };
     }
 }

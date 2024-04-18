@@ -6,6 +6,7 @@ use App\Enums\HttpMethod;
 use App\Exceptions\ProcessingException;
 use App\Models\User;
 use App\Services\Processing\Contracts\Client;
+use Exception;
 use Throwable;
 
 /**
@@ -35,7 +36,12 @@ class BalanceGetter
         }
 
         try {
-            $res = $this->client->request(HttpMethod::GET, "/owners/{$user->processing_owner_id}/balances", []);
+            $res = $this->client->request(
+                method: HttpMethod::GET,
+                uri: "/owners/{$user->processing_owner_id}/balances",
+                data:[],
+                statsUri: '/owners/{ownerId}/balances'
+            );
 
             if ($res->getStatusCode() == 200) {
                 $body = json_decode((string)$res->getBody(), true);
@@ -57,7 +63,12 @@ class BalanceGetter
      */
     public function getBalanceByOwnerStoreId(string $ownerId): array
     {
-        $res = $this->client->request(HttpMethod::GET, "/owners/$ownerId/balances", []);
+        $res = $this->client->request(
+            method: HttpMethod::GET,
+            uri: "/owners/$ownerId/balances",
+            data: [],
+            statsUri: '/owners/{ownerId}/balances'
+        );
 
         if ($res->getStatusCode() != 200) {
             throw new ProcessingException(__('Balance not found.'));
@@ -72,17 +83,22 @@ class BalanceGetter
 
     public function getAddressBalanceByOwnerId(string $ownerId, string $blockchain = ""): array
     {
-        $response = $this->client->request(HttpMethod::GET, "/owners/{$ownerId}/addresses-balance", ['blockchain' => $blockchain]);
+        try {
+            $response = $this->client->request(
+                method: HttpMethod::GET,
+                uri: "/owners/{$ownerId}/addresses-balance",
+                data: ['blockchain' => $blockchain],
+                statsUri: '/owners/{ownerId}/addresses-balance'
+            );
 
-        if ($response->getStatusCode() != 200) {
-            throw new ProcessingException(__('Balance not found.'));
+            if (!$result = json_decode((string)$response->getBody(), true)) {
+                $result = [];
+            }
+            return $result;
+
+        } catch (Exception) {
+            return [];
         }
 
-        if (!$result = json_decode((string)$response->getBody(), true)) {
-            $result = [];
-        }
-
-
-        return $result;
     }
 }

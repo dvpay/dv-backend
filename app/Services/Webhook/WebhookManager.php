@@ -9,6 +9,7 @@ use App\Enums\WebhookType;
 use App\Models\Invoice;
 use App\Models\Webhook;
 use App\Repositories\WebhookRepository;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 class WebhookManager
@@ -16,7 +17,6 @@ class WebhookManager
     public function __construct(private readonly WebhookRepository $webhookRepository)
     {
     }
-
     /**
      * @param  Invoice  $invoice
      * @param  bool  $skipCheckHandledWebhook
@@ -58,5 +58,12 @@ class WebhookManager
         }
 
         return $this->webhookRepository->checkWebhookIsHandled($invoice, $webhook);
+    }
+
+    public function getWebhooksByStore(string $storeId, WebhookType $webhookType): Collection
+    {
+        return Webhook::where('store_id', $storeId)
+            ->whereJsonContains('events', $webhookType)
+            ->get();
     }
 }

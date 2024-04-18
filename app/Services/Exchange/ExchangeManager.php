@@ -2,40 +2,41 @@
 
 namespace App\Services\Exchange;
 
-use App\Enums\ExchangeService as ExchangeServiceEnum;
-use App\Exceptions\ApiException;
 use App\Models\User;
+use App\Services\Exchange\HuobiExchange\HuobiExchangeClient;
+use App\Services\Exchange\HuobiExchange\HuobiExchangeService;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Manager;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
-class ExchangeManager implements ExchangeManagerInterface
+
+class ExchangeManager extends Manager
 {
-    private mixed $app;
+    protected User $user;
 
-    public function __construct($app)
+    public function getDefaultDriver()
     {
-        $this->app = $app;
+        return $this->config->get('exchange.default');
     }
 
     /**
-     * @throws \Exception
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    public function make(ExchangeServiceEnum $service, Authenticatable|User $user)
+    protected function createHuobiDriver()
     {
-        $exchangeName = $service->getTitle();
-        return match ($exchangeName) {
-            'Huobi' => $this->createHuobiExchangeService($user),
-            default => throw new ApiException("Exchange $exchangeName is not supported", 403),
-        };
+        $client = $this->container->get(HuobiExchangeClient::class);
+
+        return HuobiExchangeService::make(
+            huobiClient: $client,
+            user: $this->user,
+        );
     }
 
-    private function createHuobiExchangeService(Authenticatable|User $user)
+    public function setUser(User|Authenticatable $user): self
     {
-        $config = $this->app['config']['exchange.huobi'];
-        $service = HuobiExchangeService::make(app(PendingRequest::class));
-        $service->setConfig($config);
-        $service->setUser($user);
-        $service->setKeys();
-        return $service;
+        $this->user = $user;
+        return $this;
     }
 }

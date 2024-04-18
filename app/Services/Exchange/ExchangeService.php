@@ -5,20 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Exchange;
 
 use App\Dto\ExchangeKeyAddDto;
-use App\Enums\ExchangeChainType;
-use App\Enums\ExchangeKeyType;
-use App\Enums\ExchangeService as ExchangeServiceEnum;
-use App\Exceptions\ApiException;
 use App\Models\Exchange;
 use App\Models\ExchangeKey;
 use App\Models\ExchangeUserKey;
 use App\Models\ExchangeWalletCurrency;
 use App\Models\User;
-use App\Services\Huobi\HuobiService;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -130,84 +122,4 @@ class ExchangeService
         }
     }
 
-    /**
-     * @param $userId
-     *
-     * @return array
-     */
-    public function getHuobiKeys($userId): array
-    {
-        $userKeys = ExchangeUserKey::select('exchange_keys.key as name', 'exchange_user_keys.value as value')
-            ->join('exchange_keys', 'exchange_user_keys.key_id', 'exchange_keys.id')
-            ->where([
-                ['exchange_keys.exchange_id', ExchangeServiceEnum::Huobi->getId()],
-                ['exchange_user_keys.user_id', $userId],
-            ])
-            ->get();
-
-        $result = [];
-        foreach ($userKeys as $key) {
-            if ($key->name == ExchangeKeyType::AccessKey->value) {
-                $result['accessKey'] = $key->value;
-            }
-
-            if ($key->name == ExchangeKeyType::SecretKey->value) {
-                $result['secretKey'] = $key->value;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * @throws GuzzleException
-     * @throws Exception
-     * @throws Throwable
-     */
-    public function testConnection(User $user, ExchangeServiceEnum $exchange): void
-    {
-        if ($exchange == ExchangeServiceEnum::Huobi) {
-            $keys = $this->getHuobiKeys($user->id);
-        }
-
-        if (!isset($keys['accessKey']) || !isset($keys['secretKey'])) {
-            throw new ApiException('Keys not found', Response::HTTP_BAD_REQUEST);
-        }
-
-        $huobiService = new HuobiService(
-            $keys['accessKey'],
-            $keys['secretKey'],
-            $user
-        );
-
-        $result = $huobiService->getAccountAccounts();
-        if ($result->status != 'ok') {
-            throw new ApiException('Test connection - failed.', Response::HTTP_BAD_REQUEST);
-        }
-    }
-    public function loadAddress(Authenticatable|User $user, ExchangeServiceEnum $exchange)
-    {
-
-
-        if ($exchange == ExchangeServiceEnum::Huobi) {
-            $keys = $this->getHuobiKeys($user->id);
-        }
-
-        if (!isset($keys['accessKey']) || !isset($keys['secretKey'])) {
-            throw new ApiException('Keys not found', Response::HTTP_BAD_REQUEST);
-        }
-
-        $huobiService = new HuobiService(
-            $keys['accessKey'],
-            $keys['secretKey'],
-            $user
-        );
-
-        $result = $huobiService->getDepositAddresses();
-
-        return array_filter($result, function($item) {
-            return in_array($item->chain, ExchangeChainType::values());
-        });
-
-    }
 }

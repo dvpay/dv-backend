@@ -9,7 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class FakeClient implements Client
 {
-    public function request(HttpMethod $method, string $uri, array $data): ResponseInterface
+    public function request(HttpMethod $method, string $uri, array $data, ?string $statsUri = null): ResponseInterface
     {
         return new Response();
     }

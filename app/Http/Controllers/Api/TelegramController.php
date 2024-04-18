@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\DefaultResponseResource;
+use App\Services\Processing\Contracts\OwnerContract;
 use App\Services\Telegram\TelegramService;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use TelegramBot\Api\Exception;
@@ -20,7 +22,10 @@ class TelegramController extends ApiController
     /**
      * @param TelegramService $telegramService
      */
-    public function __construct(private readonly TelegramService $telegramService)
+    public function __construct(
+        private readonly TelegramService $telegramService,
+        private readonly OwnerContract $ownerContract
+    )
     {
     }
 
@@ -66,5 +71,12 @@ class TelegramController extends ApiController
         $this->telegramService->command($input);
 
         return new DefaultResponseResource([]);
+    }
+
+    public function processing(Authenticatable $auth)
+    {
+        $result = $this->ownerContract->telegramDeepLink($auth->processing_owner_id);
+
+        return new DefaultResponseResource($result);
     }
 }

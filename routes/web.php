@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Setup\EnvironmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,9 +13,5 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('setup')->group(function () {
-    Route::get('/', [EnvironmentController::class, 'index']);
-    Route::post('/save', [EnvironmentController::class, 'saveEnvironment']);
-    Route::get('/admin', [EnvironmentController::class, 'admin']);
-    Route::post('/register', [EnvironmentController::class, 'registerUser']);
-});
+Route::get('/prometheus', [\App\Http\Controllers\MetricsController::class, 'prometheus'])
+    ->middleware(['prometheusBasicAuth','prometheusCheckIP']);

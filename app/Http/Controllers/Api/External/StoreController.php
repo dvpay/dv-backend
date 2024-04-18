@@ -19,10 +19,9 @@ class StoreController extends Controller
     #[OA\Get(
         path: '/v2/stores/currencies/rate',
         summary: 'Get currency rate',
-        tags: ['store'],
+        security: [["apiKeyAuth" => []]],
+        tags: ['Store'],
         parameters: [
-            new OA\Parameter(name: 'X-Api-Key', in: 'header', required: true,
-                schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'currency', description: 'Currency example BTC.Bitcoin, ETH.Ethereum', in: 'query', required: true,
                 schema: new OA\Schema(type: 'string')),
         ],

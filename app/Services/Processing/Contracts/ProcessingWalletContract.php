@@ -11,4 +11,6 @@ interface ProcessingWalletContract
      * @return array
      */
     public function getWallets(string $ownerId): array;
+
+    public function switchType(string $ownerId, string $blockchain, string $type): true;
 }
