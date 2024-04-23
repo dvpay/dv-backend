@@ -26,17 +26,6 @@ RUN docker-php-ext-install opcache \
 RUN pecl install xdebug \
   && docker-php-ext-enable xdebug
 
-RUN git clone https://github.com/edenhill/librdkafka.git \
-    && ( \
-        cd librdkafka \
-        && ./configure \
-        && make \
-        && make install \
-    )
-
-RUN pecl install rdkafka \
-    && echo "extension=rdkafka.so" > /usr/local/etc/php/conf.d/rdkafka.ini
-
 ARG UID
 ARG GID
 

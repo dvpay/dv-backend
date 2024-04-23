@@ -26,16 +26,6 @@ RUN docker-php-ext-install opcache \
 RUN pecl install xdebug \
   && docker-php-ext-enable xdebug
 
-RUN git clone https://github.com/edenhill/librdkafka.git \
-    && ( \
-        cd librdkafka \
-        && ./configure \
-        && make \
-        && make install \
-    )
-
-RUN pecl install rdkafka \
-    && echo "extension=rdkafka.so" > /usr/local/etc/php/conf.d/rdkafka.ini
 
 ENV DOCKERIZE_VERSION v0.6.1
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
