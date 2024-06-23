@@ -206,7 +206,7 @@ readonly class UserService
     public function getDetailInfo(User $user): array
     {
         $telegramNotification = TelegramNotificationStatus::Disabled->value;
-        $tgUser = TgUser::where('user_id', $user->id)->first();
+        $tgUser = TgUser::query()->where('user_id', $user->id)->first();
         if ($tgUser) {
             $telegramNotification = TelegramNotificationStatus::Enabled->value;
         }

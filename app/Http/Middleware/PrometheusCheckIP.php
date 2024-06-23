@@ -16,8 +16,7 @@ class PrometheusCheckIP
             return $next($request);
         }
 
-        if(in_array($request->ip(),$allowedIps))
-        {
+        if(in_array($request->ip(),$allowedIps)) {
             return $next($request);
         }
 

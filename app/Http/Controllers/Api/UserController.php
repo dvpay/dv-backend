@@ -185,9 +185,9 @@ class UserController extends ApiController
     {
         $user = $request->user();
 
-        $result = $this->userService->getDetailInfo($user);
-
-        return new DefaultResponseResource($result);
+        return new DefaultResponseResource(
+            $this->userService->getDetailInfo($user)
+        );
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\RateSource as RateSourceEnum;
 use App\Models\Traits\HasUuid;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Store extends Model
 {
-    use HasUuid;
+    use HasUuid, HasFactory;
 
     protected $fillable = [
             'user_id',
