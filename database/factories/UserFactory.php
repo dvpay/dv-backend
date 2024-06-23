@@ -17,7 +17,7 @@ class UserFactory extends Factory
      *
      * @return array
      */
-    public function definition()
+    public function definition(): array
     {
         return [
             'name' => fake()->name(),
@@ -32,7 +32,7 @@ class UserFactory extends Factory
      *
      * @return static
      */
-    public function unverified()
+    public function unverified(): static
     {
         return $this->state(function (array $attributes) {
             return [
@@ -41,7 +41,21 @@ class UserFactory extends Factory
         });
     }
 
-    public function configure()
+    /**
+     * Indicate that the model's email address should be unverified.
+     *
+     * @return static
+     */
+    public function admin(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'is_admin' => true,
+            ];
+        });
+    }
+
+    public function configure(): Factory|UserFactory
     {
         return $this->afterMaking(function (User $user) {
             return $user->assignRole(UserRole::Admin->value);

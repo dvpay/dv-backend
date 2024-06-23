@@ -9,7 +9,7 @@ trait HasUuid
     /**
      * Boot function from Laravel
      */
-    protected static function boot(): void
+    protected static function boot(): void //TODO: boot is better not to put it in a trait, there is a high probability to add it for a certain model, which will also have a Uuid
     {
         parent::boot();
 

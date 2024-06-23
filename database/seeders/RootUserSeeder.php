@@ -18,6 +18,7 @@ class RootUserSeeder extends Seeder
                 'password'            => Hash::make('password'),
                 'email_verified_at'   => now(),
                 'processing_owner_id' => Str::random(20),
+                'is_admin' => true,
         ]);
 
         $user->assignRole([UserRole::Root->value, UserRole::Admin->value]);

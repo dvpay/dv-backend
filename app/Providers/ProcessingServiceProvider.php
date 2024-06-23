@@ -48,51 +48,9 @@ class ProcessingServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (config('processing.fake')) {
-            $this->app->bind(ProcessingClient::class, fn() => new FakeClient());
-
-            $this->app->bind(AddressContract::class, fn() => new AddressFake());
-            $this->app->bind(OwnerContract::class, fn() => new OwnerFake(new AddressFake()));
-            $this->app->bind(TransactionContract::class, fn() => new TransactionFake());
-            $this->app->bind(ProcessingWalletContract::class, fn() => new ProcessingWalletFake());
-            $this->app->bind(TransferContract::class, fn() => new TransferFake());
-            $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
-                transferHandler: $this->app->get(TransferCallback::class),
-                paymentHandler: $this->app->get(PaymentCallback::class),
-            ));
-            $this->app->bind(HeartbeatContract::class, fn() => new HeartbeatFake());
+            $this->bootProcessingFake();
         } else {
-            $httpClient = new Client([
-                'base_uri' => config('processing.url'),
-            ]);
-
-            $this->app->bind(ProcessingClient::class, fn() => new HttpClient(
-                $httpClient,
-                config('processing.client.id'),
-                config('processing.client.key'),
-            ));
-
-            $this->app->bind(TransferService::class, fn() => new TransferService());
-
-            $service = new ProcessingService(
-                $this->app->get(ProcessingClient::class),
-            );
-
-            $cb = fn() => $service;
-
-            $this->app->bind(OwnerContract::class, $cb);
-            $this->app->bind(TransferContract::class, $cb);
-            $this->app->bind(HeartbeatContract::class, $cb);
-            $this->app->bind(AddressContract::class, fn() => new ProcessingAddressService(
-                $this->app->get(ProcessingClient::class),
-            ));
-
-            $this->app->bind(TransactionContract::class, fn() => new ProcessingTransactionService(
-                $this->app->get(ProcessingClient::class)
-            ));
-
-            $this->app->bind(ProcessingWalletContract::class, fn() => new ProcessingWalletService(
-                $this->app->get(ProcessingClient::class)
-            ));
+            $this->bootProcessing();
         }
 
         $this->app->bind(BalanceGetter::class, fn() => new BalanceGetter($this->app->get(ProcessingClient::class)));
@@ -114,5 +72,61 @@ class ProcessingServiceProvider extends ServiceProvider
             paymentHandler: $this->app->get(PaymentCallback::class),
         ));
 
+    }
+
+    protected function bootProcessingFake(): void
+    {
+        $this->app->bind(ProcessingClient::class, fn() => new FakeClient());
+
+        $this->app->bind(AddressContract::class, fn() => new AddressFake());
+        $this->app->bind(OwnerContract::class, fn() => new OwnerFake(new AddressFake()));
+        $this->app->bind(TransactionContract::class, fn() => new TransactionFake());
+        $this->app->bind(ProcessingWalletContract::class, fn() => new ProcessingWalletFake());
+        $this->app->bind(TransferContract::class, fn() => new TransferFake());
+        $this->app->bind(ProcessingCallbackHandler::class, fn() => new ProcessingCallbackHandler(
+            transferHandler: $this->app->get(TransferCallback::class),
+            paymentHandler: $this->app->get(PaymentCallback::class),
+        ));
+        $this->app->bind(HeartbeatContract::class, fn() => new HeartbeatFake());
+    }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    protected function bootProcessing(): void
+    {
+        $httpClient = new Client([
+            'base_uri' => config('processing.url'),
+        ]);
+
+        $this->app->bind(ProcessingClient::class, fn() => new HttpClient(
+            $httpClient,
+            config('processing.client.id'),
+            config('processing.client.key'),
+        ));
+
+        $this->app->bind(TransferService::class, fn() => new TransferService());
+
+        $service = new ProcessingService(
+            $this->app->get(ProcessingClient::class),
+        );
+
+        $cb = fn() => $service;
+
+        $this->app->bind(OwnerContract::class, $cb);
+        $this->app->bind(TransferContract::class, $cb);
+        $this->app->bind(HeartbeatContract::class, $cb);
+        $this->app->bind(AddressContract::class, fn() => new ProcessingAddressService(
+            $this->app->get(ProcessingClient::class),
+        ));
+
+        $this->app->bind(TransactionContract::class, fn() => new ProcessingTransactionService(
+            $this->app->get(ProcessingClient::class)
+        ));
+
+        $this->app->bind(ProcessingWalletContract::class, fn() => new ProcessingWalletService(
+            $this->app->get(ProcessingClient::class)
+        ));
     }
 }

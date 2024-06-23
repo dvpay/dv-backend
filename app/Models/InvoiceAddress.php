@@ -7,11 +7,12 @@ namespace App\Models;
 use App\Enums\Blockchain;
 use App\Events\InvoiceAddressUpdateEvent;
 use App\Models\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class InvoiceAddress extends Model
 {
-    use HasUuid;
+    use HasUuid, HasFactory;
 
     protected $fillable = [
         'invoice_id',

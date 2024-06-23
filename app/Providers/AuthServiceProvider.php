@@ -51,15 +51,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->bind(Google2FA::class, fn () => new Google2FA());
+        $this->app->bind(Google2FA::class);
 
-        $this->app->bind(UserService::class, fn () => new UserService(
-            $this->app->get(OwnerContract::class),
-            $this->app->get('db.connection'),
-            $this->app->get('hash'),
-            $this->app->get('mailer'),
-            $this->app->get(Google2FA::class)
-        ));
+        $this->app->bind(UserService::class);
 
 
         Auth::viaRequest('auth-api-key', $this->app->get(StoreAuthGuard::class));

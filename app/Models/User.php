@@ -28,6 +28,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 /**
  * User model.
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property bool $is_admin
+ * @property null|string $google2fa_secret
  */
 class User extends Authenticatable implements MustVerifyEmail, HasLocalePreference
 {
